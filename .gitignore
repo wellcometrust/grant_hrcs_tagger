@@ -169,3 +169,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Data Folder for downloaded HRCS and intermediate data files
+data/
