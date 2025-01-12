@@ -25,6 +25,8 @@ def read_ukhra_dataset(year):
         }
 
         ukhra_df.rename(columns=col_map, inplace=True)
+    else:
+        ukhra_df = ukhra_df.loc[ukhra_df['CodingType'] == 'Manual']
 
     cols = [
         'FundingOrganisation',
@@ -54,6 +56,20 @@ def combine_ukhra_datasets():
         df.append(ukhra_dataset)
 
     df = pd.concat(df)
+
+    df = df.sort_values(by='year')
+
+    df.drop_duplicates(
+        subset=[
+            'FundingOrganisation',
+            'OrganisationReference',
+            'AwardTitle',
+            'AwardAbstract',
+        ],
+        inplace=True,
+        keep='last'
+    )
+
     df = df.fillna('').astype(str)
     df.to_parquet('data/clean/ukhra_combined.parquet')
 
@@ -75,7 +91,8 @@ def melt_labels(df, label):
         'FundingOrganisation',
         'OrganisationReference',
         'AwardTitle',
-        'AwardAbstract'
+        'AwardAbstract',
+        'year'
     ]
 
     cols = id_cols + [c for c in df if f'{label}_' in c and c[-1] != '%']
@@ -111,7 +128,7 @@ def process_hc(df):
     df = melt_labels(df, 'HC')
     df['HC'] = df['HC'].str.lower()
 
-    df['HC'].replace(
+    df['HC'] = df['HC'].replace(
         {
             'cancer': 'cancer and neoplasms',
             'cardio': 'cardiovascular',
@@ -128,8 +145,7 @@ def process_hc(df):
             'reproduction': 'reproductive health and childbirth',
             'generic': 'generic health relevance',
             'other': 'disputed aetiology and other'
-        },
-        inplace=True
+        }
     )
 
     df.to_parquet('data/clean/ukhra_hc.parquet')
@@ -139,3 +155,20 @@ if __name__ == '__main__':
     combined_df = combine_ukhra_datasets()
     process_ra(combined_df)
     process_hc(combined_df)
+
+"""
+title
+NO TITLE AVAILABLE
+Award title not available in public dataset
+
+
+abstract
+Award abstract unavailable in public dataset
+NIHR Collaboration for Leadership in Applied Health Research and Care (CLAHRC) award - no abstract available
+CSO NRS Career Research Fellowship Award - no abstract available
+NIHR Biomedical Research Centre (BRC) award - no abstract available
+NIHR Healthcare Technology Cooperative (HTC) - no abstract available
+NIHR Imperial Patient Safety Translational Research Centre - no abstract available
+Rare Diseases Translational Research Collaboration (TRC) - no abstract available
+No abstract
+"""
