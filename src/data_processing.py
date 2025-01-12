@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from rich.progress import track
 
@@ -70,7 +71,43 @@ def combine_ukhra_datasets():
         keep='last'
     )
 
-    df = df.fillna('').astype(str)
+    title_nulls = [
+        'no title available',
+        'award title not available in public dataset'
+    ]
+
+    abstract_nulls = [
+        'award abstract unavailable in public dataset',
+        'nihr collaboration for leadership in applied health research and care'
+        ' (clahrc) award - no abstract available',
+        'cso nrs career research fellowship award - no abstract available',
+        'nihr biomedical research centre (brc) award - no abstract available',
+        'nihr healthcare technology cooperative (htc) - no abstract available',
+        'nihr imperial patient safety translational research centre -'
+        ' no abstract available',
+        'rare diseases translational research collaboration (trc)'
+        ' - no abstract available',
+        'no abstract'
+    ]
+
+    df['AwardTitle'] = np.where(
+        df['AwardTitle'].str.strip().str.lower().isin(title_nulls),
+        '',
+        df['AwardTitle']
+    )
+
+    df['AwardAbstract'] = np.where(
+        df['AwardAbstract'].str.strip().str.lower().isin(abstract_nulls),
+        '',
+        df['AwardAbstract']
+    )
+
+    df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
+    df['TextLen'] = df['AllText'].str.len()
+    df = df.loc[df['TextLen'] >= 5]
+
+    df.fillna('', inplace=True)
+    df = df.astype(str)
     df.to_parquet('data/clean/ukhra_combined.parquet')
 
     return df
@@ -92,6 +129,8 @@ def melt_labels(df, label):
         'OrganisationReference',
         'AwardTitle',
         'AwardAbstract',
+        'AllText',
+        'TextLen',
         'year'
     ]
 
@@ -155,20 +194,3 @@ if __name__ == '__main__':
     combined_df = combine_ukhra_datasets()
     process_ra(combined_df)
     process_hc(combined_df)
-
-"""
-title
-NO TITLE AVAILABLE
-Award title not available in public dataset
-
-
-abstract
-Award abstract unavailable in public dataset
-NIHR Collaboration for Leadership in Applied Health Research and Care (CLAHRC) award - no abstract available
-CSO NRS Career Research Fellowship Award - no abstract available
-NIHR Biomedical Research Centre (BRC) award - no abstract available
-NIHR Healthcare Technology Cooperative (HTC) - no abstract available
-NIHR Imperial Patient Safety Translational Research Centre - no abstract available
-Rare Diseases Translational Research Collaboration (TRC) - no abstract available
-No abstract
-"""
