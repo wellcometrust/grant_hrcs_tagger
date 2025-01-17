@@ -190,7 +190,12 @@ def process_hc(df):
     df.to_parquet('data/clean/ukhra_hc.parquet')
 
 
-if __name__ == '__main__':
+def build_dataset():
+    """Builds single cleaned dataset from downloaded files"""
     combined_df = combine_ukhra_datasets()
     process_ra(combined_df)
     process_hc(combined_df)
+
+
+if __name__ == '__main__':
+    build_dataset()

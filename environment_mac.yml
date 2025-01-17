@@ -1,0 +1,42 @@
+name: hrcs_tagger
+channels:
+  - anaconda
+  - defaults
+dependencies:
+  - blas=1.0=openblas
+  - bottleneck=1.4.2=py313ha35b7ea_0
+  - bzip2=1.0.8=h80987f9_6
+  - ca-certificates=2024.12.31=hca03da5_0
+  - expat=2.6.4=h313beb8_0
+  - libcxx=14.0.6=h848a8c0_0
+  - libffi=3.4.4=hca03da5_1
+  - libgfortran=5.0.0=11_3_0_hca03da5_28
+  - libgfortran5=11.3.0=h009349e_28
+  - libmpdec=4.0.0=h80987f9_0
+  - libopenblas=0.3.21=h269037a_0
+  - llvm-openmp=14.0.6=hc6e5704_0
+  - markdown-it-py=2.2.0=py313hca03da5_1
+  - mdurl=0.1.0=py313hca03da5_0
+  - ncurses=6.4=h313beb8_0
+  - numexpr=2.10.1=py313h5d9532f_0
+  - numpy=2.2.1=py313h7c57ca2_0
+  - numpy-base=2.2.1=py313hb98e858_0
+  - openssl=3.0.15=h80987f9_0
+  - pandas=2.2.3=py313hcf29cfe_0
+  - pip=24.2=py313hca03da5_0
+  - pygments=2.15.1=py313hca03da5_1
+  - python=3.13.1=h4862095_100_cp313
+  - python-dateutil=2.9.0post0=py313hca03da5_2
+  - python-tzdata=2023.3=pyhd3eb1b0_0
+  - python_abi=3.13=0_cp313
+  - pytz=2024.1=py313hca03da5_0
+  - readline=8.2=h1a28f6b_0
+  - rich=13.9.4=py313hca03da5_0
+  - setuptools=72.1.0=py313hca03da5_0
+  - six=1.16.0=pyhd3eb1b0_1
+  - sqlite=3.45.3=h80987f9_0
+  - tk=8.6.14=h6ba3021_0
+  - tzdata=2024b=h04d1e81_0
+  - wheel=0.44.0=py313hca03da5_0
+  - xz=5.4.6=h80987f9_1
+  - zlib=1.2.13=h18a0788_1
