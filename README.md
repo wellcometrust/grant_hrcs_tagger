@@ -8,6 +8,7 @@ To download data and compile into a cleaned training dataset, use the below comm
 ```shell
 make build_dataset
 ```
-- This command downloads the tagged Excel data from from https://hrcsonline.net/ and compiles it into single cleaned parquet files.
+- This command downloads the tagged Excel data from from https://hrcsonline.net/.
+- Then calls a Python script that compiles these datasets into single cleaned parquet files.
 - Each parquet file represents a tag type with one file for RAC division, RAC group and Health Category.
 - Each row represents a grant and tag combination, there can be multiple rows/tags per grant.
