@@ -113,8 +113,8 @@ def combine_ukhra_datasets():
     return df
 
 
-def melt_labels(df, label):
-    """Converts selected label columns to rows.
+def collate_labels(df, label):
+    """Collates selected labels into a list.
 
     Args:
         df(pd.DataFrame): UKHRA dataset.
@@ -134,11 +134,32 @@ def melt_labels(df, label):
         'year'
     ]
 
-    cols = id_cols + [c for c in df if f'{label}_' in c and c[-1] != '%']
-    df = df[cols].melt(id_vars=id_cols, ignore_index=True)
-    df.rename(columns={'value': label}, inplace=True)
-    df = df.loc[df[label] != '']
+    cat_cols = [c for c in df if f'{label}_' in c and c[-1] != '%']
+
+    # Lists to store category values
+    cat_list = []
+
+    # Iterate over each row in the dataframe
+    for _, row in df.iterrows():
+        # Create a temporary list for each row
+        grant_cat = []
+        
+        # Iterate over RA_ columns
+        for col in cat_cols:
+            if len(row[col])>=3:  # Check if the value is not null
+                if label == 'RA':
+                    grant_cat.append(row[col][:3])
+                elif label == 'HC':
+                    grant_cat.append(row[col].lower())
+        
+        # Append the list of non-null `RA_` values to ra_list
+        cat_list.append(grant_cat)
+
+    df[label] = cat_list
     df = df[id_cols + [label]]
+    # drop empy lists in the label column
+    df = df.loc[df[label].str.len() > 0]
+    df = df.reset_index()
 
     return df
 
@@ -150,9 +171,9 @@ def process_ra(df):
         df(pd.DataFrame): UKHRA dataset.
 
     """
-    df = melt_labels(df, 'RA')
-    df['RA1'] = df['RA'].str[0]
-    df['RA2'] = df['RA'].str[:3]
+    df = collate_labels(df, 'RA')
+    # df['RA1'] = df['RA'].str[0]
+    # df['RA'] = df['RA'].str[:3]
 
     df.to_parquet('data/clean/ukhra_ra.parquet')
 
@@ -164,28 +185,28 @@ def process_hc(df):
         df(pd.DataFrame): UKHRA dataset.
 
     """
-    df = melt_labels(df, 'HC')
-    df['HC'] = df['HC'].str.lower()
+    df = collate_labels(df, 'HC')
+    # df['HC'] = df['HC'].str.lower()
 
-    df['HC'] = df['HC'].replace(
-        {
-            'cancer': 'cancer and neoplasms',
-            'cardio': 'cardiovascular',
-            'congenital': 'congenital disorders',
-            'inflammatory': 'inflammatory and immune system',
-            'inflamation and immune': 'inflammatory and immune system',
-            'inflammatory and immune system': 'inflammatory and immune system',
-            'injuries': 'injuries and accidents',
-            'mental': 'mental health',
-            'metabolic': 'metabolic and endocrine',
-            'muscle': 'musculoskeletal',
-            'oral': 'oral and gastrointestinal',
-            'renal': 'renal and urogenital',
-            'reproduction': 'reproductive health and childbirth',
-            'generic': 'generic health relevance',
-            'other': 'disputed aetiology and other'
-        }
-    )
+    # df['HC'] = df['HC'].replace(
+    #     {
+    #         'cancer': 'cancer and neoplasms',
+    #         'cardio': 'cardiovascular',
+    #         'congenital': 'congenital disorders',
+    #         'inflammatory': 'inflammatory and immune system',
+    #         'inflamation and immune': 'inflammatory and immune system',
+    #         'inflammatory and immune system': 'inflammatory and immune system',
+    #         'injuries': 'injuries and accidents',
+    #         'mental': 'mental health',
+    #         'metabolic': 'metabolic and endocrine',
+    #         'muscle': 'musculoskeletal',
+    #         'oral': 'oral and gastrointestinal',
+    #         'renal': 'renal and urogenital',
+    #         'reproduction': 'reproductive health and childbirth',
+    #         'generic': 'generic health relevance',
+    #         'other': 'disputed aetiology and other'
+    #     }
+    # )
 
     df.to_parquet('data/clean/ukhra_hc.parquet')
 
