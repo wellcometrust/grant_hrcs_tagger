@@ -14,3 +14,7 @@ Start with setting up the virtual environment for this project. Make sure you ha
 :penguin: On Linux `conda env create -f environment.yml` 
 
 The environment can be activates with `conda activate hrcs_tagger`
+
+### 2. Downloading the dataset
+
+To Download the UK Health Research Analysis data used for training, run `make build_dataset`. This make command assumes `wget` is installed, which on a Mac you will have to install first, `brew install wget`.
