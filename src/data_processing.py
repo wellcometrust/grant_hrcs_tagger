@@ -143,7 +143,7 @@ def collate_labels(df, label):
     for _, row in df.iterrows():
         # Create a temporary list for each row
         grant_cat = []
-        
+
         # Iterate over RA_ columns
         for col in cat_cols:
             if len(row[col])>=3:  # Check if the value is not null
@@ -172,6 +172,14 @@ def process_ra(df):
 
     """
     df = collate_labels(df, 'RA')
+    RA_top = []
+    for _, row in df.iterrows():
+        RA_top_row = []
+        for ra in row['RA']:
+            RA_top_row.append(ra[0])
+        RA_top.append(RA_top_row)
+
+    df['RA_top'] = RA_top
     # df['RA1'] = df['RA'].str[0]
     # df['RA'] = df['RA'].str[:3]
 
