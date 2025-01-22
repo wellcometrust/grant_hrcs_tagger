@@ -1,11 +1,14 @@
+preprocess_settings:
+  cased: False
+
 training_settings:
   category: 'top_RA'  # choose from "RA", "top_RA" or "HC"
-  # model: 'distilbert-base-uncased'
-  model: 'roberta-large'
-  learning_rate: 0.0002
-  num_train_epochs: 1                
-  per_device_train_batch_size: 16      
-  per_device_eval_batch_size: 16       
+  model: 'distilbert-base-uncased'
+  # model: 'roberta-base'
+  learning_rate: 0.0001
+  num_train_epochs: 10                
+  per_device_train_batch_size: 8      
+  per_device_eval_batch_size: 8       
   weight_decay: 0.01                  
   report_to: "wandb"
 

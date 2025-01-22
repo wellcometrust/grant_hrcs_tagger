@@ -6,7 +6,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 import yaml
 
-def load_yaml_config(yaml_path):
+def load_yaml_config(yaml_path:str):
+    """ Load yaml configuration file.
+
+    Returns:
+        dict: configuration dictionary
+    """
     with open(yaml_path, 'r') as f:
         return yaml.safe_load(f)
 
@@ -26,7 +31,7 @@ def binarize(data: pd.DataFrame):
         data['RA_bin'] = mlb.fit_transform(data['RA_top']).tolist()
     elif category == 'RA':
         data['RA_bin'] = mlb.fit_transform(data['RA']).tolist()
-
+    print(mlb.classes_)
     return data
 
 def split_data_frame(data: pd.DataFrame, test_size=0.2):
@@ -88,7 +93,6 @@ if __name__ == "__main__":
     parser.add_argument('--config', type=str, default='../config/train_config.yaml')
     parser.add_argument('--clean-data', type=str, default='../data/clean/ukhra_ra.parquet')
     parser.add_argument('--output-dir', type=str, default='../data/preprocessed')
-    parser.add_argument('--cased', action='store_true')
     args = parser.parse_args()
 
     config = load_yaml_config(args.config)
@@ -97,8 +101,8 @@ if __name__ == "__main__":
     data = pd.read_parquet(args.clean_data)
     data = binarize(data)
     train, test = split_data_frame(data)
-    train = clean_dataframe(train, cased=args.cased)
-    test = clean_dataframe(test, cased=args.cased)
+    train = clean_dataframe(train, config['preprocess_settings']['cased'])
+    test = clean_dataframe(test, config['preprocess_settings']['cased'])
 
     # calculate the value counts for each label (to compare evaluating metrics against the distribution of labels)
     category = config['training_settings']['category']
