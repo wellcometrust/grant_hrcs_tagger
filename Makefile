@@ -12,3 +12,13 @@ build_dataset:
 	wget -O data/raw/ukhra2018.xlsx https://hrcsonline.net/wp-content/uploads/2020/01/UKHRA2018_HRCS_public_dataset_v1_27Jan2020.xlsx
 	wget -O data/raw/ukhra2014.xlsx https://hrcsonline.net/wp-content/uploads/2018/01/UK_Health_Research_Analysis_Data_2014_public_v1_27Oct2015.xlsx
 	python src/data_processing.py
+
+.PHONY: preprocess
+preprocess:
+	python src/preprocess.py --config "config/train_config.yaml" --clean-data "data/clean/ukhra_ra.parquet" --output-dir "data/preprocessed"
+
+.PHONY: preprocess-cased
+preprocess:
+	python src/preprocess.py --config "config/train_config.yaml" --clean-data "data/clean/ukhra_ra.parquet" --output-dir "data/preprocessed" --cased
+
+.PHONY: train
