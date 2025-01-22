@@ -103,6 +103,8 @@ def combine_ukhra_datasets():
     )
 
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
+    # lower case content of df['AllText']
+    df['AllText'] = df['AllText']
     df['TextLen'] = df['AllText'].str.len()
     df = df.loc[df['TextLen'] >= 5]
 
@@ -150,7 +152,7 @@ def collate_labels(df, label):
                 if label == 'RA':
                     grant_cat.append(row[col][:3])
                 elif label == 'HC':
-                    grant_cat.append(row[col].lower())
+                    grant_cat.append(row[col])
         
         # Append the list of non-null `RA_` values to ra_list
         cat_list.append(grant_cat)
