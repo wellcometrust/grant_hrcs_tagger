@@ -1,5 +1,6 @@
 preprocess_settings:
   cased: False
+  test_train_split: 0.2
 
 training_settings:
   category: 'RA'  # choose from "RA", "top_RA" or "HC"
