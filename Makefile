@@ -15,6 +15,19 @@ build_dataset:
 
 .PHONY: preprocess
 preprocess:
-	python src/preprocess.py --config "config/train_config.yaml" --clean-data "data/clean/ukhra_ra.parquet" --output-dir "data/preprocessed"
+	python src/preprocess.py \
+		--config "config/train_config.yaml" \
+		--clean-data "data/clean/ukhra_ra.parquet" \
+		--output-dir "data/preprocessed"
 
 .PHONY: train
+train:
+	python src/train.py \
+		--config-path config/train_config.yaml \
+		--train-path data/preprocessed/train.parquet \
+		--test-path data/preprocessed/test.parquet \
+		--RA-value-counts-path data/preprocessed/RA_value_counts.json \
+		--label-names-path data/label_names/ukhra_ra.jsonl \
+		--model-dir data/model
+
+

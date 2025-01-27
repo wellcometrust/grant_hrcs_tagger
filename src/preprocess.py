@@ -31,7 +31,6 @@ def binarize(data: pd.DataFrame):
         data['RA_bin'] = mlb.fit_transform(data['RA_top']).tolist()
     elif category == 'RA':
         data['RA_bin'] = mlb.fit_transform(data['RA']).tolist()
-    print(mlb.classes_)
     return data
 
 def split_data_frame(data: pd.DataFrame, test_size=0.2):
