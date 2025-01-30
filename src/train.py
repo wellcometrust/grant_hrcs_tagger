@@ -94,12 +94,11 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
     wandb.log({"num_labels": num_labels})
 
     # initialize model
-    model = AutoModelForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
-    # model = RobertaForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
-    # model = AlbertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
+    if 'modernbert' in config['training_settings']['model'].lower(): 
+        model = ModernBertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification", reference_compile=False)
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
 
-    # model_config = AutoConfig.from_pretrained(config['training_settings']['model'])
-    # model = ModernBertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification", reference_compile=False)
     model.to(device)
 
     # initialize training arguments
