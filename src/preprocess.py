@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # pipeline
     data = pd.read_parquet(args.clean_data)
     data = binarize(data)
-    train, test = split_data_frame(data, config['training_settings']['test_train_split'])
+    train, test = split_data_frame(data, config['preprocess_settings']['test_train_split'])
     train = clean_dataframe(train, config['preprocess_settings']['cased'])
     test = clean_dataframe(test, config['preprocess_settings']['cased'])
 

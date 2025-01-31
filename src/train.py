@@ -75,7 +75,6 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
     test_data = pd.read_parquet(test_data_path)
 
     tokenizer = AutoTokenizer.from_pretrained(config['training_settings']['model'])
-    # tokenizer = AlbertTokenizer.from_pretrained(config['training_settings']['model'])
     
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
@@ -96,8 +95,10 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
     # initialize model
     if 'modernbert' in config['training_settings']['model'].lower(): 
         model = ModernBertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification", reference_compile=False)
+        print("model initialized using ModernBertForSequenceClassification")
     else:
         model = AutoModelForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
+        print("model initialized using AutoModelForSequenceClassification")
 
     model.to(device)
 
@@ -143,6 +144,8 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
 
             return (loss, outputs) if return_outputs else loss
     
+
+    compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
     if class_weighting:
         trainer = WeightedTrainer(
@@ -174,25 +177,68 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
 
     return metrics
 
-def compute_metrics(eval_pred):
-    """ Compute evaluation metrics to be used in the Trainer.
+def prepare_compute_metrics(config):
+    """ Wrapper for compute_metrics so config can be accessed
 
-    Args: eval_pred (tuple): Tuple containing logits and labels.
+    Args: config (dict): Configuration dictionary from yaml file.
 
     Returns:
-        dict: Evaluation metrics (f1, f1_macro, f1_micro, precision, recall)
+        function: compute_metrics function
     """
-    logits, labels = eval_pred
-    # apply sigmoid to logits
-    logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
-    predictions = np.where(logits > 0.5, 1, 0)
-    f1_macro = f1_score(labels, predictions, average='macro')
-    f1_micro = f1_score(labels, predictions, average='micro')
-    f1 = f1_score(labels, predictions, average=None)
-    precision = precision_score(labels, predictions, average=None)
-    recall = recall_score(labels, predictions, average=None)
-    print({"f1": f1, "f1_macro": f1_macro, "f1_micro": f1_micro, "precision": precision, "recall": recall})
-    return {"f1": f1, "f1_macro": f1_macro, "f1_micro": f1_micro, "precision": precision, "recall": recall}
+    def compute_metrics(eval_pred):
+        """ Compute evaluation metrics to be used in the Trainer.
+
+        Args: eval_pred (tuple): Tuple containing logits and labels.
+
+        Returns:
+            dict: Evaluation metrics (f1, f1_macro, f1_micro, precision, recall)
+        """
+        logits, labels = eval_pred
+        # apply sigmoid to logits
+        logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
+
+        if config['training_settings']['output_weighting']:
+            thresholds = [1] * labels.shape[1]
+            if config['training_settings']['category'] == 'RA' or config['training_settings']['category'] == 'top_RA':
+                # make a list of increasing thresholds same lenght as the number of labels
+                thresholds[0] = 0.2
+                thresholds[1] = 0.5
+                thresholds[2] = 0.8
+                thresholds[3] = 0.95
+            else: 
+                print(f"category {config['training_settings']['category']} not recognized for output weighting")
+
+            # Prepare an array to hold your predictions
+            predictions = np.zeros_like(logits)
+            num_tags_predicted = []
+
+            # Loop through each sample's logits
+            for i, logit in enumerate(logits):
+                # Get the indices of the logits sorted by value in descending order
+                sorted_indices = np.argsort(logit)[::-1]
+
+                # Assign 1 to the top logits that exceed their respective thresholds
+                for rank, idx in enumerate(sorted_indices):
+                    if logit[idx] > thresholds[rank]:
+                        predictions[i, idx] = 1
+                num_tags_predicted.append(np.sum(predictions[i]))
+        else:
+            predictions = np.where(logits > 0.5, 1, 0)
+            for prediction in predictions:
+                num_tags_predicted.append(np.sum(prediction))
+
+            print("num_tags_predicted: ", pd.Series(num_tags_predicted).value_counts().sort_index())
+            wandb.log({"num_tags_predicted": pd.Series(num_tags_predicted).value_counts().sort_index().to_json()})
+
+        # compute actual metrics
+        f1_macro = f1_score(labels, predictions, average='macro')
+        f1_micro = f1_score(labels, predictions, average='micro')
+        f1 = f1_score(labels, predictions, average=None)
+        precision = precision_score(labels, predictions, average=None)
+        recall = recall_score(labels, predictions, average=None)
+        print({"f1": f1, "f1_macro": f1_macro, "f1_micro": f1_micro, "precision": precision, "recall": recall})
+        return {"f1": f1, "f1_macro": f1_macro, "f1_micro": f1_micro, "precision": precision, "recall": recall}
+    return compute_metrics
 
 def plot_metrics(metrics, RA_value_counts):
     """ Plot evaluation metrics and value counts in wandb

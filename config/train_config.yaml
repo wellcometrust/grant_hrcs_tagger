@@ -3,17 +3,18 @@ preprocess_settings:
   test_train_split: 0.2
 
 training_settings:
-  category: 'RA'  # choose from "RA", "top_RA" or "HC"
-  model: 'distilbert-base-uncased'
-  # model: 'answerdotai/ModernBERT-base'
+  category: 'top_RA'  # choose from "RA", "top_RA" or "HC"
+  # model: 'distilbert-base-uncased'
+  model: 'answerdotai/ModernBERT-base'
   learning_rate: 0.0001
-  num_train_epochs: 3                
+  num_train_epochs: 5           
   per_device_train_batch_size: 2      
   per_device_eval_batch_size: 2       
   weight_decay: 0.01                  
   report_to: "wandb"
   save_strategy: "no"
   class_weighting: False
+  output_weighting: True # if True custom thresholds will be set for the logits if False threshold = 0.5 for all
 
 wandb_settings:
   project_name: 'grant_hrcs_tagger'
