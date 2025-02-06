@@ -152,7 +152,9 @@ def collate_labels(df, label):
                 if label == 'RA':
                     grant_cat.append(row[col][:3])
                 elif label == 'HC':
-                    grant_cat.append(row[col])
+                    hc_value = row[col].lower()
+                    hc_value = hc_rename(hc_value)
+                    grant_cat.append(hc_value)
         
         # Append the list of non-null `RA_` values to ra_list
         cat_list.append(grant_cat)
@@ -165,6 +167,36 @@ def collate_labels(df, label):
 
     return df
 
+def hc_rename(hc_value):
+    """ Steamline HC naming
+    
+    Args:
+        hc_value(str): health category name
+
+    Return:
+        str: renamed health category name
+    """
+    hc_streamline_dict = {
+            'cancer': 'cancer and neoplasms',
+            'cardio': 'cardiovascular',
+            'congenital': 'congenital disorders',
+            'inflammatory': 'inflammatory and immune system',
+            'inflamation and immune': 'inflammatory and immune system',
+            'inflammatory and immune system': 'inflammatory and immune system',
+            'injuries': 'injuries and accidents',
+            'mental': 'mental health',
+            'metabolic': 'metabolic and endocrine',
+            'muscle': 'musculoskeletal',
+            'oral': 'oral and gastrointestinal',
+            'renal': 'renal and urogenital',
+            'reproduction': 'reproductive health and childbirth',
+            'generic': 'generic health relevance',
+            'other': 'disputed aetiology and other'
+        }
+    if hc_value in hc_streamline_dict:
+        return hc_streamline_dict[hc_value]
+    else: return hc_value
+    
 
 def process_ra(df):
     """Transform and clean HRCS Research Activities.
@@ -196,28 +228,6 @@ def process_hc(df):
 
     """
     df = collate_labels(df, 'HC')
-    # df['HC'] = df['HC'].str.lower()
-
-    # df['HC'] = df['HC'].replace(
-    #     {
-    #         'cancer': 'cancer and neoplasms',
-    #         'cardio': 'cardiovascular',
-    #         'congenital': 'congenital disorders',
-    #         'inflammatory': 'inflammatory and immune system',
-    #         'inflamation and immune': 'inflammatory and immune system',
-    #         'inflammatory and immune system': 'inflammatory and immune system',
-    #         'injuries': 'injuries and accidents',
-    #         'mental': 'mental health',
-    #         'metabolic': 'metabolic and endocrine',
-    #         'muscle': 'musculoskeletal',
-    #         'oral': 'oral and gastrointestinal',
-    #         'renal': 'renal and urogenital',
-    #         'reproduction': 'reproductive health and childbirth',
-    #         'generic': 'generic health relevance',
-    #         'other': 'disputed aetiology and other'
-    #     }
-    # )
-
     df.to_parquet('data/clean/ukhra_hc.parquet')
 
 
