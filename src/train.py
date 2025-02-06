@@ -15,6 +15,7 @@ from transformers import (Trainer,
                           AutoTokenizer,
                           DataCollatorWithPadding, 
                           AutoModelForSequenceClassification,
+                          DistilBertForSequenceClassification,
                           ModernBertForSequenceClassification)
 
 def load_yaml_config(config_path:str):
@@ -97,6 +98,9 @@ def train(train_data_path, test_data_path, model_path, config, value_counts, cla
     if 'modernbert' in config['training_settings']['model'].lower(): 
         model = ModernBertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification", reference_compile=False)
         print("model initialized using ModernBertForSequenceClassification")
+    elif 'distilbert' in config['training_settings']['model'].lower(): 
+        model = DistilBertForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
+        print("model initialized using DistilBertForSequenceClassification")
     else:
         model = AutoModelForSequenceClassification.from_pretrained(config['training_settings']['model'], num_labels=num_labels, problem_type="multi_label_classification")
         print("model initialized using AutoModelForSequenceClassification")
