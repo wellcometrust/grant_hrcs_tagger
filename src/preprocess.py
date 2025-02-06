@@ -6,7 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MultiLabelBinarizer
 import yaml
 
-def load_yaml_config(yaml_path:str):
+
+def load_yaml_config(yaml_path: str):
     """ Load yaml configuration file.
 
     Returns:
@@ -14,6 +15,7 @@ def load_yaml_config(yaml_path:str):
     """
     with open(yaml_path, 'r') as f:
         return yaml.safe_load(f)
+
 
 def binarize(data: pd.DataFrame):
     """
@@ -36,6 +38,7 @@ def binarize(data: pd.DataFrame):
         data['HC_bin'] = mlb.fit_transform(data['HC']).tolist()
     return data
 
+
 def split_data_frame(data: pd.DataFrame, test_size=0.2):
     """
     Split data into training and test sets.
@@ -49,6 +52,7 @@ def split_data_frame(data: pd.DataFrame, test_size=0.2):
     """
     return train_test_split(data, test_size=test_size, random_state=42)
 
+
 def clean_dataframe(data: pd.DataFrame, cased=False):
     """
     Changes labels and trims data to only include text and label columns.
@@ -59,8 +63,12 @@ def clean_dataframe(data: pd.DataFrame, cased=False):
     Returns:
         pd.DataFrame: Cleaned dataframe
     """
-    # rename columns 
-    data.rename(columns={'AllText': 'text', 'RA_bin': 'label', 'HC_bin': 'label'}, inplace=True)
+    # rename columns
+    data.rename(
+        columns={'AllText': 'text', 'RA_bin': 'label', 'HC_bin': 'label'},
+        inplace=True
+    )
+
     # drop other columns
     data = data[['text', 'label']]
     # if cased is set to False, convert text to lowercase
@@ -68,6 +76,7 @@ def clean_dataframe(data: pd.DataFrame, cased=False):
         data['text'] = data['text'].str.lower()
 
     return data
+
 
 def save_train_test_data(train, test, value_counts, output_dir):
     """
@@ -92,9 +101,21 @@ def save_train_test_data(train, test, value_counts, output_dir):
 if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='../config/train_config.yaml')
-    parser.add_argument('--clean-data', type=str, default='../data/clean/ukhra_ra.parquet')
-    parser.add_argument('--output-dir', type=str, default='../data/preprocessed')
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='../config/train_config.yaml'
+    )
+    parser.add_argument(
+        '--clean-data',
+        type=str,
+        default='../data/clean/ukhra_ra.parquet'
+    )
+    parser.add_argument(
+        '--output-dir',
+        type=str,
+        default='../data/preprocessed'
+    )
     args = parser.parse_args()
 
     config = load_yaml_config(args.config)
@@ -102,11 +123,15 @@ if __name__ == "__main__":
     # pipeline
     data = pd.read_parquet(args.clean_data)
     data = binarize(data)
-    train, test = split_data_frame(data, config['preprocess_settings']['test_train_split'])
+    train, test = split_data_frame(
+        data,
+        config['preprocess_settings']['test_train_split']
+    )
     train = clean_dataframe(train, config['preprocess_settings']['cased'])
     test = clean_dataframe(test, config['preprocess_settings']['cased'])
 
-    # calculate the value counts for each label (to compare evaluating metrics against the distribution of labels)
+    # calculate the value counts for each label (to compare evaluating metrics
+    # against the distribution of labels)
     category = config['training_settings']['category']
     if category == 'top_RA':
         data_RA_exploded = data.explode('RA_top')

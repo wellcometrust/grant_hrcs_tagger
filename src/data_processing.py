@@ -149,14 +149,14 @@ def collate_labels(df):
 
             # Iterate over RA_ columns
             for col in cat_cols:
-                if len(row[col])>=3:  # Check if the value is not null
+                if len(row[col]) >= 3:  # Check if the value is not null
                     if label == 'RA':
                         grant_cat.append(row[col][:3])
                     elif label == 'HC':
                         hc_value = row[col].lower()
                         hc_value = hc_rename(hc_value)
                         grant_cat.append(hc_value)
-            
+
             # Append the list of non-null `RA_` values to ra_list
             cat_list.append(grant_cat)
 
@@ -169,9 +169,10 @@ def collate_labels(df):
 
     return df
 
+
 def hc_rename(hc_value):
     """ Steamline HC naming
-    
+
     Args:
         hc_value(str): health category name
 
@@ -197,8 +198,9 @@ def hc_rename(hc_value):
         }
     if hc_value in hc_streamline_dict:
         return hc_streamline_dict[hc_value]
-    else: return hc_value
-    
+    else:
+        return hc_value
+
 
 def process(df):
     """Transform and clean HRCS Research Activities.
@@ -219,10 +221,12 @@ def process(df):
 
     df.to_parquet('data/clean/ukhra_clean.parquet')
 
+
 def build_dataset():
     """Builds single cleaned dataset from downloaded files"""
     combined_df = combine_ukhra_datasets()
     process(combined_df)
+
 
 if __name__ == '__main__':
     build_dataset()
