@@ -115,12 +115,11 @@ def combine_ukhra_datasets():
     return df
 
 
-def collate_labels(df, label):
+def collate_labels(df):
     """Collates selected labels into a list.
 
     Args:
         df(pd.DataFrame): UKHRA dataset.
-        label(str): Label column name.
 
     Returns:
         pd.DataFrame: Transformed UKHRA dataset.
@@ -136,31 +135,34 @@ def collate_labels(df, label):
         'year'
     ]
 
-    cat_cols = [c for c in df if f'{label}_' in c and c[-1] != '%']
+    label_list = ['RA', 'RA_top', 'HC']
+    for label in label_list:
+        cat_cols = [c for c in df if f'{label}_' in c and c[-1] != '%']
 
-    # Lists to store category values
-    cat_list = []
+        # Lists to store category values
+        cat_list = []
 
-    # Iterate over each row in the dataframe
-    for _, row in df.iterrows():
-        # Create a temporary list for each row
-        grant_cat = []
+        # Iterate over each row in the dataframe
+        for _, row in df.iterrows():
+            # Create a temporary list for each row
+            grant_cat = []
 
-        # Iterate over RA_ columns
-        for col in cat_cols:
-            if len(row[col])>=3:  # Check if the value is not null
-                if label == 'RA':
-                    grant_cat.append(row[col][:3])
-                elif label == 'HC':
-                    hc_value = row[col].lower()
-                    hc_value = hc_rename(hc_value)
-                    grant_cat.append(hc_value)
-        
-        # Append the list of non-null `RA_` values to ra_list
-        cat_list.append(grant_cat)
+            # Iterate over RA_ columns
+            for col in cat_cols:
+                if len(row[col])>=3:  # Check if the value is not null
+                    if label == 'RA':
+                        grant_cat.append(row[col][:3])
+                    elif label == 'HC':
+                        hc_value = row[col].lower()
+                        hc_value = hc_rename(hc_value)
+                        grant_cat.append(hc_value)
+            
+            # Append the list of non-null `RA_` values to ra_list
+            cat_list.append(grant_cat)
 
-    df[label] = cat_list
-    df = df[id_cols + [label]]
+        df[label] = cat_list
+
+    df = df[id_cols+label_list]
     # drop empy lists in the label column
     df = df.loc[df[label].str.len() > 0]
     df = df.reset_index()
@@ -198,14 +200,14 @@ def hc_rename(hc_value):
     else: return hc_value
     
 
-def process_ra(df):
+def process(df):
     """Transform and clean HRCS Research Activities.
 
     Args:
         df(pd.DataFrame): UKHRA dataset.
 
     """
-    df = collate_labels(df, 'RA')
+    df = collate_labels(df)
     RA_top = []
     for _, row in df.iterrows():
         RA_top_row = []
@@ -214,29 +216,13 @@ def process_ra(df):
         RA_top.append(RA_top_row)
 
     df['RA_top'] = RA_top
-    # df['RA1'] = df['RA'].str[0]
-    # df['RA'] = df['RA'].str[:3]
 
-    df.to_parquet('data/clean/ukhra_ra.parquet')
-
-
-def process_hc(df):
-    """Transform and clean HRCS Health Categories.
-
-    Args:
-        df(pd.DataFrame): UKHRA dataset.
-
-    """
-    df = collate_labels(df, 'HC')
-    df.to_parquet('data/clean/ukhra_hc.parquet')
-
+    df.to_parquet('data/clean/ukhra_clean.parquet')
 
 def build_dataset():
     """Builds single cleaned dataset from downloaded files"""
     combined_df = combine_ukhra_datasets()
-    process_ra(combined_df)
-    process_hc(combined_df)
-
+    process(combined_df)
 
 if __name__ == '__main__':
     build_dataset()

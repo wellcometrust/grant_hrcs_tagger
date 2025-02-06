@@ -58,7 +58,7 @@ class HRCSDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
-def train(train_data_path, test_data_path, model_path, config, RA_value_counts, class_weighting):
+def train(train_data_path, test_data_path, model_path, config, value_counts, class_weighting):
     """
     Finetune a model from the config for the UKHRA data.
 
@@ -116,14 +116,14 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
         output_dir=model_path,
     )
 
-    # sort RA_value_counts by key
-    RA_value_counts = {k: v for k, v in sorted(RA_value_counts.items(), key=lambda item: item[0])}
-    RA_values = list(RA_value_counts.values())
-    RA_values = [value/sum(RA_values) for value in RA_values]
-    RA_values = [1/value for value in RA_values]
+    # sort value_counts by key
+    value_counts = {k: v for k, v in sorted(value_counts.items(), key=lambda item: item[0])}
+    HRCS_values = list(value_counts.values())
+    HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
+    HRCS_values = [1/value for value in HRCS_values]
 
     # set class weights
-    class_weights = torch.tensor(RA_values, dtype=torch.float32).to(device)
+    class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
 
     class WeightedTrainer(Trainer):
         def __init__(self, *args, class_weights: Optional[torch.FloatTensor] = None, **kwargs):
@@ -199,6 +199,7 @@ def prepare_compute_metrics(config):
         # apply sigmoid to logits
         logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
 
+        num_tags_predicted = []
         if config['training_settings']['output_weighting']:
             thresholds = [1] * labels.shape[1]
             if config['training_settings']['category'] == 'RA' or config['training_settings']['category'] == 'top_RA':
@@ -208,11 +209,13 @@ def prepare_compute_metrics(config):
                 thresholds[2] = 0.8
                 thresholds[3] = 0.95
             else: 
-                print(f"category {config['training_settings']['category']} not recognized for output weighting")
+                thresholds[0] = 0.2
+                thresholds[1] = 0.6
+                thresholds[2] = 0.8
+                thresholds[3] = 0.9
 
             # Prepare an array to hold your predictions
             predictions = np.zeros_like(logits)
-            num_tags_predicted = []
 
             # Loop through each sample's logits
             for i, logit in enumerate(logits):
@@ -242,25 +245,25 @@ def prepare_compute_metrics(config):
         return {"f1": f1, "f1_macro": f1_macro, "f1_micro": f1_micro, "precision": precision, "recall": recall}
     return compute_metrics
 
-def plot_metrics(metrics, RA_value_counts):
+def plot_metrics(metrics, value_counts):
     """ Plot evaluation metrics and value counts in wandb
     
     Args:
         metrics (dict): Evaluation metrics.
-        RA_value_counts (dict): Mapping of label to count in the dataset
+        value_counts (dict): Mapping of label to count in the dataset
     """
     # plot f1 per label
     f1 = metrics['eval_f1']
     precision = metrics['eval_precision']
     recall = metrics['eval_recall']
-    # order metrics to align with RA_value_counts index
-    value_count_keys = list(RA_value_counts.keys())
+    # order metrics to align with value_counts index
+    value_count_keys = list(value_counts.keys())
     metric_idx = [value_count_keys.index(label) for label in value_count_keys]
     f1 = [f1[idx] for idx in metric_idx]
     precision = [precision[idx] for idx in metric_idx]
     recall = [recall[idx] for idx in metric_idx]
 
-    data = [[label, precision, recall, f1, value_count] for label, precision, recall, f1, value_count in zip(RA_value_counts.keys(), precision, recall, f1, RA_value_counts.values())]
+    data = [[label, precision, recall, f1, value_count] for label, precision, recall, f1, value_count in zip(value_counts.keys(), precision, recall, f1, value_counts.values())]
     table = wandb.Table(data=data, columns=["label", "precision", "recall", "f1", "value_count"])
     wandb.log({"metrics and value_count table":table})
 
@@ -271,7 +274,7 @@ if __name__ == "__main__":
     parser.add_argument('--config-path', type=str, default='config/train_config.yaml')
     parser.add_argument('--train-path', type=str, default='data/preprocessed/train.parquet')
     parser.add_argument('--test-path', type=str, default='data/preprocessed/test.parquet')
-    parser.add_argument('--RA-value-counts-path', type=str, default='data/preprocessed/RA_value_counts.json')
+    parser.add_argument('--value-counts-path', type=str, default='data/preprocessed/value_counts.json')
     parser.add_argument('--label-names-path', type=str, default='data/label_names/ukhra_ra.jsonl')
     parser.add_argument('--model-dir', type=str, default='data/model')
     args = parser.parse_args()
@@ -287,15 +290,17 @@ if __name__ == "__main__":
         os.makedirs(model_path)
 
     # pull in label names and value counts
-    with open(args.RA_value_counts_path, 'r') as f:
-        RA_value_counts = json.load(f)
+    with open(args.value_counts_path, 'r') as f:
+        value_counts = json.load(f)
 
     with open(args.label_names_path, 'r') as f:
         label_names = {k: v for line in f for k, v in json.loads(line).items()}
 
-    RA_value_counts = {label+"-"+label_names[label]: count for label, count in RA_value_counts.items()}
-
-    print(RA_value_counts)
+    # add in the RA full name for reporting.
+    if 'RA' in config['training_settings']['category']:
+        value_counts = {label+"-"+label_names[label]: count for label, count in value_counts.items()}
+    
+    print(value_counts)
 
     class_weighting = config['training_settings']['class_weighting']
     metrics = train(
@@ -303,7 +308,7 @@ if __name__ == "__main__":
         test_data_path=args.test_path, 
         model_path=model_path, 
         config=config, 
-        RA_value_counts=RA_value_counts, 
+        value_counts=value_counts, 
         class_weighting=class_weighting
         )
-    plot_metrics(metrics, RA_value_counts)
+    plot_metrics(metrics, value_counts)

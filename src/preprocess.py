@@ -31,6 +31,9 @@ def binarize(data: pd.DataFrame):
         data['RA_bin'] = mlb.fit_transform(data['RA_top']).tolist()
     elif category == 'RA':
         data['RA_bin'] = mlb.fit_transform(data['RA']).tolist()
+    elif category == 'HC':
+        data.dropna(subset=['HC'], inplace=True)
+        data['HC_bin'] = mlb.fit_transform(data['HC']).tolist()
     return data
 
 def split_data_frame(data: pd.DataFrame, test_size=0.2):
@@ -57,7 +60,7 @@ def clean_dataframe(data: pd.DataFrame, cased=False):
         pd.DataFrame: Cleaned dataframe
     """
     # rename columns 
-    data.rename(columns={'AllText': 'text', 'RA_bin': 'label'}, inplace=True)
+    data.rename(columns={'AllText': 'text', 'RA_bin': 'label', 'HC_bin': 'label'}, inplace=True)
     # drop other columns
     data = data[['text', 'label']]
     # if cased is set to False, convert text to lowercase
@@ -82,7 +85,7 @@ def save_train_test_data(train, test, value_counts, output_dir):
     test.to_parquet(output_dir+'/test.parquet')
 
     # save value_counts
-    with open(output_dir+'/RA_value_counts.json', 'w') as f:
+    with open(output_dir+'/value_counts.json', 'w') as f:
         json.dump(value_counts, f)
 
 
@@ -111,6 +114,9 @@ if __name__ == "__main__":
     elif category == 'RA':
         data_RA_exploded = data.explode('RA')
         value_counts = data_RA_exploded['RA'].value_counts()
+    elif category == 'HC':
+        data_RA_exploded = data.explode('HC')
+        value_counts = data_RA_exploded['HC'].value_counts()
     value_counts = value_counts.to_dict()
 
     # save data
