@@ -70,7 +70,7 @@ def clean_dataframe(data: pd.DataFrame, cased=False):
     )
 
     # drop other columns
-    data = data[['text', 'label']]
+    data = data[['text', 'label']].copy()
     # if cased is set to False, convert text to lowercase
     if not cased:
         data['text'] = data['text'].str.lower()
