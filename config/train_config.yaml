@@ -12,7 +12,8 @@ training_settings:
   per_device_eval_batch_size: 2       
   weight_decay: 0.01                  
   report_to: "wandb"
-  save_strategy: "no"
+  save_strategy: "epoch"
+  save_total_limit: 1
   class_weighting: False
   output_weighting: True # if True custom thresholds will be set for the logits if False threshold = 0.5 for all
 

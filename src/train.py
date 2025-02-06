@@ -10,11 +10,12 @@ import torch
 import torch.nn as nn
 from typing import Optional
 from sklearn.metrics import f1_score, precision_score, recall_score
-from transformers import (Trainer, TrainingArguments, AutoTokenizer,
-                          DataCollatorWithPadding, AutoModelForSequenceClassification)
-
-from transformers import (AlbertTokenizer, AlbertForSequenceClassification )
-from transformers import (ModernBertForSequenceClassification, AutoConfig)
+from transformers import (Trainer, 
+                          TrainingArguments, 
+                          AutoTokenizer,
+                          DataCollatorWithPadding, 
+                          AutoModelForSequenceClassification,
+                          ModernBertForSequenceClassification)
 
 def load_yaml_config(config_path:str):
     """ Load yaml configuration file.
@@ -111,6 +112,7 @@ def train(train_data_path, test_data_path, model_path, config, RA_value_counts, 
         weight_decay=config['training_settings']['weight_decay'],
         report_to=config['training_settings']["report_to"],
         save_strategy=config['training_settings']['save_strategy'],
+        save_total_limit=config['training_settings']['save_total_limit'],
         output_dir=model_path,
     )
 
@@ -292,13 +294,14 @@ if __name__ == "__main__":
         label_names = {k: v for line in f for k, v in json.loads(line).items()}
 
     RA_value_counts = {label+"-"+label_names[label]: count for label, count in RA_value_counts.items()}
+
     print(RA_value_counts)
 
     class_weighting = config['training_settings']['class_weighting']
     metrics = train(
         train_data_path=args.train_path, 
         test_data_path=args.test_path, 
-        model_path=args.model_dir, 
+        model_path=model_path, 
         config=config, 
         RA_value_counts=RA_value_counts, 
         class_weighting=class_weighting
