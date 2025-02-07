@@ -103,6 +103,8 @@ def combine_ukhra_datasets():
     )
 
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
+    # lower case content of df['AllText']
+    df['AllText'] = df['AllText']
     df['TextLen'] = df['AllText'].str.len()
     df = df.loc[df['TextLen'] >= 5]
 
@@ -113,12 +115,11 @@ def combine_ukhra_datasets():
     return df
 
 
-def melt_labels(df, label):
-    """Converts selected label columns to rows.
+def collate_labels(df):
+    """Collates selected labels into a list.
 
     Args:
         df(pd.DataFrame): UKHRA dataset.
-        label(str): Label column name.
 
     Returns:
         pd.DataFrame: Transformed UKHRA dataset.
@@ -134,41 +135,51 @@ def melt_labels(df, label):
         'year'
     ]
 
-    cols = id_cols + [c for c in df if f'{label}_' in c and c[-1] != '%']
-    df = df[cols].melt(id_vars=id_cols, ignore_index=True)
-    df.rename(columns={'value': label}, inplace=True)
-    df = df.loc[df[label] != '']
-    df = df[id_cols + [label]]
+    label_list = ['RA', 'RA_top', 'HC']
+    for label in label_list:
+        cat_cols = [c for c in df if f'{label}_' in c and c[-1] != '%']
+
+        # Lists to store category values
+        cat_list = []
+
+        # Iterate over each row in the dataframe
+        for _, row in df.iterrows():
+            # Create a temporary list for each row
+            grant_cat = []
+
+            # Iterate over RA_ columns
+            for col in cat_cols:
+                if len(row[col]) >= 3:  # Check if the value is not null
+                    if label == 'RA':
+                        grant_cat.append(row[col][:3])
+                    elif label == 'HC':
+                        hc_value = row[col].lower()
+                        hc_value = hc_rename(hc_value)
+                        grant_cat.append(hc_value)
+
+            # Append the list of non-null `RA_` values to ra_list
+            cat_list.append(grant_cat)
+
+        df[label] = cat_list
+
+    df = df[id_cols+label_list]
+    # drop empy lists in the label column
+    df = df.loc[df[label].str.len() > 0]
+    df = df.reset_index()
 
     return df
 
 
-def process_ra(df):
-    """Transform and clean HRCS Research Activities.
+def hc_rename(hc_value):
+    """ Steamline HC naming
 
     Args:
-        df(pd.DataFrame): UKHRA dataset.
+        hc_value(str): health category name
 
+    Return:
+        str: renamed health category name
     """
-    df = melt_labels(df, 'RA')
-    df['RA1'] = df['RA'].str[0]
-    df['RA2'] = df['RA'].str[:3]
-
-    df.to_parquet('data/clean/ukhra_ra.parquet')
-
-
-def process_hc(df):
-    """Transform and clean HRCS Health Categories.
-
-    Args:
-        df(pd.DataFrame): UKHRA dataset.
-
-    """
-    df = melt_labels(df, 'HC')
-    df['HC'] = df['HC'].str.lower()
-
-    df['HC'] = df['HC'].replace(
-        {
+    hc_streamline_dict = {
             'cancer': 'cancer and neoplasms',
             'cardio': 'cardiovascular',
             'congenital': 'congenital disorders',
@@ -185,16 +196,36 @@ def process_hc(df):
             'generic': 'generic health relevance',
             'other': 'disputed aetiology and other'
         }
-    )
+    if hc_value in hc_streamline_dict:
+        return hc_streamline_dict[hc_value]
+    else:
+        return hc_value
 
-    df.to_parquet('data/clean/ukhra_hc.parquet')
+
+def process(df):
+    """Transform and clean HRCS Research Activities.
+
+    Args:
+        df(pd.DataFrame): UKHRA dataset.
+
+    """
+    df = collate_labels(df)
+    RA_top = []
+    for _, row in df.iterrows():
+        RA_top_row = []
+        for ra in row['RA']:
+            RA_top_row.append(ra[0])
+        RA_top.append(RA_top_row)
+
+    df['RA_top'] = RA_top
+
+    df.to_parquet('data/clean/ukhra_clean.parquet')
 
 
 def build_dataset():
     """Builds single cleaned dataset from downloaded files"""
     combined_df = combine_ukhra_datasets()
-    process_ra(combined_df)
-    process_hc(combined_df)
+    process(combined_df)
 
 
 if __name__ == '__main__':
