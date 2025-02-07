@@ -103,8 +103,6 @@ def combine_ukhra_datasets():
     )
 
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
-    # lower case content of df['AllText']
-    df['AllText'] = df['AllText']
     df['TextLen'] = df['AllText'].str.len()
     df = df.loc[df['TextLen'] >= 5]
 
