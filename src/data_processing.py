@@ -104,7 +104,9 @@ def combine_ukhra_datasets():
 
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
     df['TextLen'] = df['AllText'].str.len()
-    df = df.loc[df['TextLen'] >= 5]
+    df = df.loc[df['TextLen'] >= 20]
+
+    df.drop_duplicates(subset='AllText', inplace=True, keep='last')
 
     df.fillna('', inplace=True)
     df = df.astype(str)
@@ -114,7 +116,7 @@ def combine_ukhra_datasets():
 
 
 def collate_labels(df):
-    """Collates selected labels into a list.
+    """Collates selected labels into a list.sssssssssss
 
     Args:
         df(pd.DataFrame): UKHRA dataset.
