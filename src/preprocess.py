@@ -71,10 +71,18 @@ def save_train_test_data(train, test, value_counts, output_dir):
 
 
 @click.command()
-@click.argument('config', required=False)
-@click.argument('clean_data', required=False)
-@click.argument('output_dir', required=False)
+@click.argument('config')
+@click.argument('clean_data')
+@click.argument('output_dir')
 def processing_pipeline(config, clean_data, output_dir):
+    """Process data into train, test datasets.
+
+    Args:
+        config(str): Path to config file.
+        clean_data(str): Location of clean data parquet.
+        output_dir(str): Base output directory path.
+
+    """
     config = load_yaml_config(config)
     for category in ['RA', 'RA_top', 'HC']:
         data = pd.read_parquet(clean_data)
@@ -91,9 +99,10 @@ def processing_pipeline(config, clean_data, output_dir):
         # metrics against the distribution of labels)
         data_exploded = data.explode(category)
         value_counts = data_exploded[category].value_counts()
+        value_counts = value_counts.to_dict()
 
-        output_dir = f'{output_dir}/{category.lower()}'
-        save_train_test_data(train, test, value_counts, output_dir)
+        output_sub_dir = f'{output_dir}/{category.lower()}'
+        save_train_test_data(train, test, value_counts, output_sub_dir)
 
 
 if __name__ == "__main__":
