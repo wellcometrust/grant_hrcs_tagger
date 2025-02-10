@@ -18,7 +18,7 @@ def load_yaml_config(yaml_path: str):
         return yaml.safe_load(f)
 
 
-def split_data_frame(df: pd.DataFrame, test_size=0.2):
+def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
     """
     Split data into training and test sets.
 
@@ -31,7 +31,7 @@ def split_data_frame(df: pd.DataFrame, test_size=0.2):
 
     """
     mlb = MultiLabelBinarizer()
-    y = mlb.fit_transform(df['RA_top'])
+    y = mlb.fit_transform(df[category])
     X = np.array([df['AllText'].to_numpy()]).T
 
     np.random.seed(5)
@@ -92,6 +92,7 @@ def processing_pipeline(config, clean_data, output_dir):
 
         train, test = split_data_frame(
             data,
+            category,
             config['preprocess_settings']['test_train_split']
         )
 
