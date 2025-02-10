@@ -117,7 +117,7 @@ def combine_ukhra_datasets():
 
 def collate_labels(df):
     """Collates selected labels into a list.sssssssssss
-
+ 
     Args:
         df(pd.DataFrame): UKHRA dataset.
 
