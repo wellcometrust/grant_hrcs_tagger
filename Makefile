@@ -16,9 +16,9 @@ build_dataset:
 .PHONY: preprocess
 preprocess:
 	python src/preprocess.py \
-		--config "config/train_config.yaml" \
-		--clean-data "data/clean/ukhra_clean.parquet" \
-		--output-dir "data/preprocessed"
+		"config/train_config.yaml" \
+		"data/clean/ukhra_clean.parquet" \
+		"data/preprocessed"
 
 .PHONY: train
 train:
