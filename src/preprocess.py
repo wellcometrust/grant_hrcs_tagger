@@ -30,6 +30,11 @@ def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
         tuple: training and test data
 
     """
+    df.dropna(subset=category, inplace=True)
+
+    # Randomly shuffle dataframe.
+    df = df.sample(frac=1, random_state=10)
+
     mlb = MultiLabelBinarizer()
     y = mlb.fit_transform(df[category])
     X = np.array([df['AllText'].to_numpy()]).T
