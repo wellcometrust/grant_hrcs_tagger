@@ -11,6 +11,7 @@ build_dataset:
 	wget -O data/raw/ukhra2022.xlsx https://hrcsonline.net/wp-content/uploads/2024/01/UKHRA2022_HRCS_public_dataset_v1-2_30Jan2024.xlsx
 	wget -O data/raw/ukhra2018.xlsx https://hrcsonline.net/wp-content/uploads/2020/01/UKHRA2018_HRCS_public_dataset_v1_27Jan2020.xlsx
 	wget -O data/raw/ukhra2014.xlsx https://hrcsonline.net/wp-content/uploads/2018/01/UK_Health_Research_Analysis_Data_2014_public_v1_27Oct2015.xlsx
+	wget -O data/raw/nihr_all.csv https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/csv?lang=en&timezone=Europe%2FLondon&use_labels=true&delimiter=%2C
 	python src/data_processing.py
 
 .PHONY: preprocess
@@ -24,8 +25,8 @@ preprocess:
 train:
 	python src/train.py \
 		--config-path "config/train_config.yaml" \
-		--train-path "data/preprocessed/train.parquet" \
-		--test-path "data/preprocessed/test.parquet" \
-		--value-counts-path "data/preprocessed/value_counts.json" \
+		--train-path "data/preprocessed/ra/train.parquet" \
+		--test-path "data/preprocessed/ra/test.parquet" \
+		--value-counts-path "data/preprocessed/ra/value_counts.json" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
