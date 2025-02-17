@@ -58,7 +58,7 @@ def read_nihr_dataset():
         'project_id': 'OrganisationReference'
     }
 
-    clean_df['FundingOrganisation'] = 'National Institute for Health Research'
+    clean_df['FundingOrganisation'] = 'Department of Health and Social Care'
 
     clean_df.rename(columns=col_names, inplace=True)
 

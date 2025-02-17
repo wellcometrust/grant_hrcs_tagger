@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from rich.progress import track
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
 
@@ -35,26 +34,6 @@ def hc_rename(hc_value):
         return hc_streamline_dict[hc_value]
     else:
         return hc_value
-
-
-def process(df):
-    """Transform and clean HRCS Research Activities.
-
-    Args:
-        df(pd.DataFrame): UKHRA dataset.
-
-    """
-    df = collate_labels(df)
-    RA_top = []
-    for _, row in df.iterrows():
-        RA_top_row = []
-        for ra in row['RA']:
-            RA_top_row.append(ra[0])
-        RA_top.append(RA_top_row)
-
-    df['RA_top'] = RA_top
-
-    df.to_parquet('data/clean/ukhra_clean.parquet')
 
 
 def process_abstracts(df):
@@ -92,26 +71,47 @@ def process_abstracts(df):
         df['AwardAbstract']
     )
 
+    for term in (
+        'Background',
+        'Background,',
+        'Background:',
+        'BACKGROUND',
+        'Objectives'
+    ):
+        # ToDo: Replace with regex.
+        df['AwardAbstract'] = df['AwardAbstract'].str.replace(term, '')
+
+    df['AwardAbstract'] = df['AwardAbstract'].str.strip()
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
+    df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
+    df = df.loc[df['AllText'].str.len() >= 20].copy()
+
+    df.drop_duplicates(subset='AllText', inplace=True, keep='last')
+
+    return df
 
 
 def build_dataset():
     """Builds single cleaned dataset from downloaded files"""
+    print('Loading UKHRA datasets...')
     combined_ukhra_df = load_combined_ukhra_datasets()
+    print('Loading NIHR datasets...')
     nihr_df = read_nihr_dataset()
+
+    nihr = 'Department of Health and Social Care'
+    nihr_refs = combined_ukhra_df.loc[
+        combined_ukhra_df['FundingOrganisation'] == nihr
+    ]['OrganisationReference']
+
+    nihr_df = nihr_df.loc[nihr_df['OrganisationReference'].isin(nihr_refs)]
+
+    print('Combining and cleaning datasets...')
     df = pd.concat([combined_ukhra_df, nihr_df])
-    print(df)
-    #process(combined_df)
+    df = process_abstracts(df)
+
+    df = df.astype(str)
+    df.to_parquet('data/clean/clean.parquet', index=False)
 
 
 if __name__ == '__main__':
     build_dataset()
-
-    #df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
-    #df['TextLen'] = df['AllText'].str.len()
-    #df = df.loc[df['TextLen'] >= 20]
-
-    #df.drop_duplicates(subset='AllText', inplace=True, keep='last')
-
-    #df.fillna('', inplace=True)
-    #df = df.astype(str)
