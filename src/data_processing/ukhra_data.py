@@ -43,13 +43,15 @@ def read_ukhra_dataset(year):
     return ukhra_df
 
 
-def unpivot_ra_labels(df, prefix):
+def unpivot_labels(df, prefix):
     unpivot_cols = [col for col in list(df) if col.split('_')[0] == prefix]
 
-    df[prefix] = df.apply(
-        lambda row: [row[col] for col in unpivot_cols if pd.notnull(row[col])],
+    df[prefix] = df[unpivot_cols].apply(
+        lambda row: [x for x in row if pd.notnull(x)],
         axis=1
     )
+
+    df.drop(columns=unpivot_cols, inplace=True)
 
     return df
 
@@ -71,13 +73,15 @@ def load_combined_ukhra_datasets():
     df.drop_duplicates(subset=list(df)[:2], inplace=True, keep='last')
     df.reset_index(drop=True, inplace=True)
 
-    df = unpivot_ra_labels(df, 'RA')
-    df = unpivot_ra_labels(df, 'HC')
+    df = unpivot_labels(df, 'HC')
+    df = unpivot_labels(df, 'RA')
+    df['RA'] = df['RA'].apply(lambda list: [str(x)[:3] for x in list])
+    df['RA_top'] = df['RA'].apply(lambda x: list(set([ra[0] for ra in x])))
 
-    df['RA_top'] = df['RA'].apply(lambda x: list(set([str(ra)[0] for ra in x])))
     df = df[list(df)[:4] + ['RA', 'RA_top', 'HC']]
 
     return df
 
 
-load_combined_ukhra_datasets()
+if __name__ == '__main__':
+    load_combined_ukhra_datasets()

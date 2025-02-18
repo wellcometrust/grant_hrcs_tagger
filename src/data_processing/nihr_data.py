@@ -63,3 +63,7 @@ def read_nihr_dataset():
     clean_df.rename(columns=col_names, inplace=True)
 
     return clean_df
+
+
+if __name__ == '__main__':
+    read_nihr_dataset()

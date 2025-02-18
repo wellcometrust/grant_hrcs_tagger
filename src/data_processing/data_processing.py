@@ -109,7 +109,8 @@ def build_dataset():
     df = pd.concat([combined_ukhra_df, nihr_df])
     df = process_abstracts(df)
 
-    df = df.astype(str)
+    # Mixed org data types cause a pyarrow error when saving to parquet.
+    df['OrganisationReference'] = df['OrganisationReference'].astype(str)
     df.to_parquet('data/clean/clean.parquet', index=False)
 
 
