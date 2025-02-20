@@ -76,7 +76,10 @@ def load_combined_ukhra_datasets():
     df = unpivot_labels(df, 'HC')
     df = unpivot_labels(df, 'RA')
     df['RA'] = df['RA'].apply(lambda list: [str(x)[:3] for x in list])
-    df['RA_top'] = df['RA'].apply(lambda x: list(set([ra[0] for ra in x])))
+
+    df['RA_top'] = df['RA'].apply(
+        lambda x: list(set([ra[0] for ra in x if ra.strip()]))
+    )
 
     df = df[list(df)[:4] + ['RA', 'RA_top', 'HC']]
 
