@@ -36,6 +36,23 @@ def hc_rename(hc_value):
         return hc_value
 
 
+def deduplicate(df):
+    """ Remove duplicate and near duplicate texts from AllText column.
+
+    Args:
+        df(pd.DataFrame): Dataframe containing text corpus to deduplicate.
+
+    Returns:
+        pd.DataFrame: Dataframe with duplicates removed.
+
+    """
+    df['lower'] = df['AllText'].str.lower()
+    df.drop_duplicates(subset='lower', inplace=True, keep='last')
+    df.drop(columns=['lower'], inplace=True)
+
+    return df
+
+
 def process_abstracts(df):
     """ Clean and combine title and abstract texts.
 
@@ -86,7 +103,7 @@ def process_abstracts(df):
     df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
     df = df.loc[df['AllText'].str.len() >= 20].copy()
 
-    df.drop_duplicates(subset='AllText', inplace=True, keep='last')
+    df = deduplicate(df)
 
     return df
 
