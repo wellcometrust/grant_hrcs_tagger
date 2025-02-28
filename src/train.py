@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 from typing import Optional
 from sklearn.metrics import f1_score, precision_score, recall_score
-
 from transformers import (
     Trainer,
     TrainingArguments,
@@ -123,8 +122,6 @@ def train(
     Returns:
         dict: Evaluation metrics.
     """
-    torch.cuda.empty_cache()
-
     # tokenize data and create datasets
     train_data = pd.read_parquet(train_data_path)
     test_data = pd.read_parquet(test_data_path)
@@ -165,7 +162,7 @@ def train(
             config['training_settings']['model'],
             num_labels=num_labels,
             problem_type="multi_label_classification",
-            reference_compile=False,
+            reference_compile=False
         )
 
         print("model initialized using ModernBertForSequenceClassification")
@@ -201,7 +198,7 @@ def train(
         save_strategy=config['training_settings']['save_strategy'],
         save_total_limit=config['training_settings']['save_total_limit'],
         output_dir=model_path,
-        logging_strategy="epoch"
+        logging_strategy='epoch'
     )
 
     # sort value_counts by key
@@ -322,7 +319,6 @@ def prepare_compute_metrics(config):
         f1_macro = f1_score(labels, predictions, average='macro')
         f1_micro = f1_score(labels, predictions, average='micro')
         f1 = f1_score(labels, predictions, average=None)
-
         precision = precision_score(labels, predictions, average=None)
         recall = recall_score(labels, predictions, average=None)
         print(
