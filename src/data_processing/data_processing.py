@@ -63,13 +63,15 @@ def deduplicate(df):
     lsh.update(signatures, df.index)
     adj = lsh.adjacency_list(min_jaccard=0.6)
 
+    deduplicated_ids = set()
     duplicate_ids = set()
-    for k, v in adj.items():
-        duplicate_ids.update(v)
+    for k, vs in adj.items():
+        if k not in duplicate_ids:
+            deduplicated_ids.add(k)
 
-    deduplicated_ids = set(adj.keys()) - duplicate_ids
+        duplicate_ids.update(vs)
+
     df = df.filter(list(deduplicated_ids), axis=0)
-
     df.drop(columns=['lower'], inplace=True)
 
     return df
