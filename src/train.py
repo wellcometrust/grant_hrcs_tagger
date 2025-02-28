@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 from typing import Optional
 from sklearn.metrics import f1_score, precision_score, recall_score
+
 from transformers import (
     Trainer,
     TrainingArguments,
@@ -46,6 +47,40 @@ def init_device():
         return "cuda"
     else:
         return "cpu"
+
+
+class WeightedTrainer(Trainer):
+    def __init__(
+        self,
+        *args,
+        class_weights: Optional[torch.FloatTensor] = None,
+        **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        if class_weights is not None:
+            class_weights = class_weights.to(self.args.device)
+
+        self.loss_fct = nn.BCEWithLogitsLoss(pos_weight=class_weights)
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        """ How the loss is computed by Trainer. By default, all models return
+        the loss in the first element. Subclass and override for custom
+        behavior.
+        """
+        labels = inputs.pop("labels")
+        outputs = model(**inputs)
+        try:
+            loss = self.loss_fct(
+                outputs.logits.view(-1, model.num_labels),
+                labels.view(-1, model.num_labels)
+            )
+        except AttributeError:  # DataParallel
+            loss = self.loss_fct(
+                outputs.logits.view(-1, model.module.num_labels),
+                labels.view(-1, model.num_labels)
+            )
+
+        return (loss, outputs) if return_outputs else loss
 
 
 class HRCSDataset(torch.utils.data.Dataset):
@@ -88,6 +123,8 @@ def train(
     Returns:
         dict: Evaluation metrics.
     """
+    torch.cuda.empty_cache()
+
     # tokenize data and create datasets
     train_data = pd.read_parquet(train_data_path)
     test_data = pd.read_parquet(test_data_path)
@@ -110,8 +147,11 @@ def train(
         padding=True
     )
 
-    train_dataset = HRCSDataset(train_encoding, train_data['label'].tolist())
-    test_dataset = HRCSDataset(test_encoding, test_data['label'].tolist())
+    train_y = [r for r in train_data[train_data.columns[:-1]].to_numpy()]
+    test_y = [r for r in test_data[test_data.columns[:-1]].to_numpy()]
+
+    train_dataset = HRCSDataset(train_encoding, train_y)
+    test_dataset = HRCSDataset(test_encoding, test_y)
 
     device = init_device()
     print("using device ", device)
@@ -127,7 +167,7 @@ def train(
             config['training_settings']['model'],
             num_labels=num_labels,
             problem_type="multi_label_classification",
-            reference_compile=False
+            reference_compile=False,
         )
 
         print("model initialized using ModernBertForSequenceClassification")
@@ -163,9 +203,11 @@ def train(
         save_strategy=config['training_settings']['save_strategy'],
         save_total_limit=config['training_settings']['save_total_limit'],
         output_dir=model_path,
+        logging_strategy="epoch"
     )
 
     # sort value_counts by key
+    print(value_counts)
     value_counts = {
         k: v for k, v in sorted(value_counts.items(), key=lambda item: item[0])
     }
@@ -173,48 +215,11 @@ def train(
     HRCS_values = list(value_counts.values())
     HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
     HRCS_values = [1/value for value in HRCS_values]
+    print(HRCS_values)
 
     # set class weights
     class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
-
-    class WeightedTrainer(Trainer):
-        def __init__(
-            self,
-            *args,
-            class_weights: Optional[torch.FloatTensor] = None,
-            **kwargs
-        ):
-            super().__init__(*args, **kwargs)
-            if class_weights is not None:
-                class_weights = class_weights.to(self.args.device)
-            self.loss_fct = nn.BCEWithLogitsLoss(pos_weight=class_weights)
-
-        def compute_loss(
-                self,
-                model,
-                inputs,
-                return_outputs=False,
-                num_items_in_batch=None
-        ):
-            """
-            How the loss is computed by Trainer. By default, all models return
-            the loss in the first element. Subclass and override for custom
-            behavior.
-            """
-            labels = inputs.pop("labels")
-            outputs = model(**inputs)
-            try:
-                loss = self.loss_fct(
-                    outputs.logits.view(-1, model.num_labels),
-                    labels.view(-1, model.num_labels)
-                )
-            except AttributeError:  # DataParallel
-                loss = self.loss_fct(
-                    outputs.logits.view(-1, model.module.num_labels),
-                    labels.view(-1, model.num_labels)
-                )
-
-            return (loss, outputs) if return_outputs else loss
+    print(class_weights)
 
     compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
@@ -277,7 +282,7 @@ def prepare_compute_metrics(config):
                 config['training_settings']['category'] == 'RA' or
                 config['training_settings']['category'] == 'top_RA'
             ):
-                # make a list of increasing thresholds same lenght as the
+                # make a list of increasing thresholds same length as the
                 # number of labels
                 thresholds[0] = 0.2
                 thresholds[1] = 0.5
@@ -322,6 +327,7 @@ def prepare_compute_metrics(config):
         f1_macro = f1_score(labels, predictions, average='macro')
         f1_micro = f1_score(labels, predictions, average='micro')
         f1 = f1_score(labels, predictions, average=None)
+
         precision = precision_score(labels, predictions, average=None)
         recall = recall_score(labels, predictions, average=None)
         print(
@@ -381,43 +387,10 @@ def plot_metrics(metrics, value_counts):
     wandb.log({"metrics and value_count table": table})
 
 
-if __name__ == "__main__":
-    # parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--config-path',
-        type=str,
-        default='config/train_config.yaml'
-    )
-    parser.add_argument(
-        '--train-path',
-        type=str,
-        default='data/preprocessed/train.parquet'
-    )
-    parser.add_argument(
-        '--test-path',
-        type=str,
-        default='data/preprocessed/test.parquet'
-    )
-    parser.add_argument(
-        '--value-counts-path',
-        type=str,
-        default='data/preprocessed/value_counts.json'
-    )
-    parser.add_argument(
-        '--label-names-path',
-        type=str,
-        default='data/label_names/ukhra_ra.jsonl'
-    )
-    parser.add_argument('--model-dir', type=str, default='data/model')
-    args = parser.parse_args()
-
-    config = load_yaml_config(args.config_path)
-    wandb.init(project=config['wandb_settings']['project_name'])
+def run_training(args):
     timestamp = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
     model_name = config['training_settings']['model']
     model_path = f'{args.model_dir}/{model_name}_{timestamp}'
-    wandb.log({"model_path": model_path})
     # check if model path exists
     if not os.path.exists(model_path):
         os.makedirs(model_path)
@@ -436,7 +409,12 @@ if __name__ == "__main__":
             count in value_counts.items()
         }
 
-    print(value_counts)
+    wandb.init(
+        project=config['wandb_settings']['project_name'],
+        config=config['training_settings']
+    )
+
+    wandb.log({"model_path": model_path})
 
     class_weighting = config['training_settings']['class_weighting']
     metrics = train(
@@ -446,5 +424,30 @@ if __name__ == "__main__":
         config=config,
         value_counts=value_counts,
         class_weighting=class_weighting
-        )
+    )
+
     plot_metrics(metrics, value_counts)
+
+
+if __name__ == "__main__":
+    # parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config-path', type=str, default='config/train_config.yaml')
+    dp = 'data/preprocessed'
+    parser.add_argument('--train-path', type=str, default=f'{dp}/train.parquet')
+    parser.add_argument('--test-path', type=str, default=f'{dp}/test.parquet')
+    parser.add_argument(
+        '--value-counts-path',
+        type=str,
+        default=f'{dp}/value_counts.json'
+    )
+    parser.add_argument(
+        '--label-names-path',
+        type=str,
+        default='data/label_names/ukhra_ra.jsonl'
+    )
+    parser.add_argument('--model-dir', type=str, default='data/model')
+    args = parser.parse_args()
+
+    config = load_yaml_config(args.config_path)
+    run_training(args)
