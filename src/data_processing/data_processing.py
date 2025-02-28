@@ -82,7 +82,8 @@ def process_abstracts(df):
     """
     title_nulls = [
         'no title available',
-        'award title not available in public dataset'
+        'award title not available in public dataset',
+        'mrc studentship - award title not available in public dataset'
     ]
 
     abstract_nulls = [
@@ -96,7 +97,8 @@ def process_abstracts(df):
         ' no abstract available',
         'rare diseases translational research collaboration (trc)'
         ' - no abstract available',
-        'no abstract'
+        'no abstract',
+        'mrc studentship - award abstract not available in public dataset'
     ]
 
     df['AwardTitle'] = np.where(
