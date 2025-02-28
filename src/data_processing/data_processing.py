@@ -68,8 +68,7 @@ def deduplicate(df):
     for k, vs in adj.items():
         if k not in duplicate_ids:
             deduplicated_ids.add(k)
-
-        duplicate_ids.update(vs)
+            duplicate_ids.update(vs)
 
     df = df.filter(list(deduplicated_ids), axis=0)
     df.drop(columns=['lower'], inplace=True)
