@@ -154,11 +154,9 @@ def train(
     test_dataset = HRCSDataset(test_encoding, test_y)
 
     device = init_device()
-    print("using device ", device)
     wandb.log({"device": device})
 
     num_labels = len(test_dataset[0]['labels'])
-    print(f"found {num_labels} labels")
     wandb.log({"num_labels": num_labels})
 
     # initialize model
@@ -207,7 +205,6 @@ def train(
     )
 
     # sort value_counts by key
-    print(value_counts)
     value_counts = {
         k: v for k, v in sorted(value_counts.items(), key=lambda item: item[0])
     }
@@ -215,11 +212,9 @@ def train(
     HRCS_values = list(value_counts.values())
     HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
     HRCS_values = [1/value for value in HRCS_values]
-    print(HRCS_values)
 
     # set class weights
     class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
-    print(class_weights)
 
     compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
