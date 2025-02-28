@@ -44,6 +44,16 @@ def read_ukhra_dataset(year):
 
 
 def unpivot_labels(df, prefix):
+    """Unpivot label columns.
+
+    Args:
+        df(pd.DataFrame): Dataframe containing columns to unpivot.
+        prefix(str): Prefix of columns to unpivot.
+
+    Returns:
+        pd.DataFrame: Dataframe containing unpivotted columns.
+
+    """
     unpivot_cols = [col for col in list(df) if col.split('_')[0] == prefix]
 
     df[prefix] = df[unpivot_cols].apply(
@@ -75,7 +85,9 @@ def load_combined_ukhra_datasets():
 
     df = unpivot_labels(df, 'HC')
     df = unpivot_labels(df, 'RA')
-    df['RA'] = df['RA'].apply(lambda list: [str(x)[:3] for x in list])
+    df['RA'] = df['RA'].apply(
+        lambda list: [str(x)[:3] for x in list if str(x).strip()]
+    )
 
     df['RA_top'] = df['RA'].apply(
         lambda x: list(set([ra[0] for ra in x if ra.strip()]))

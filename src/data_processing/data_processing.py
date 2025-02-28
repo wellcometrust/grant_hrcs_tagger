@@ -1,10 +1,11 @@
+import akin
 import numpy as np
 import pandas as pd
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
 
 
-def hc_rename(hc_value):
+def hc_rename(hc_values):
     """ Steamline HC naming
 
     Args:
@@ -12,8 +13,11 @@ def hc_rename(hc_value):
 
     Return:
         str: renamed health category name
+
     """
-    hc_streamline_dict = {
+    hc_values = hc_values.apply(lambda lst: [x.strip().lower() for x in lst])
+
+    streamline_dict = {
             'cancer': 'cancer and neoplasms',
             'cardio': 'cardiovascular',
             'congenital': 'congenital disorders',
@@ -30,10 +34,12 @@ def hc_rename(hc_value):
             'generic': 'generic health relevance',
             'other': 'disputed aetiology and other'
         }
-    if hc_value in hc_streamline_dict:
-        return hc_streamline_dict[hc_value]
-    else:
-        return hc_value
+
+    hc_values = hc_values.apply(
+        lambda lst: [streamline_dict.get(x, x) for x in lst]
+    )
+
+    return hc_values
 
 
 def deduplicate(df):
@@ -46,8 +52,24 @@ def deduplicate(df):
         pd.DataFrame: Dataframe with duplicates removed.
 
     """
+    # Remove exact duplicate text (case insensitive).
     df['lower'] = df['AllText'].str.lower()
     df.drop_duplicates(subset='lower', inplace=True, keep='last')
+
+    # Remove near duplicate texts using locality sensitive hashing.
+    minhash = akin.UniMinHash(seed=7)
+    signatures = minhash.transform(df['lower'])
+    lsh = akin.LSH(minhash.permutations, seed=1)
+    lsh.update(signatures, df.index)
+    adj = lsh.adjacency_list(min_jaccard=0.6)
+
+    duplicate_ids = set()
+    for k, v in adj.items():
+        duplicate_ids.update(v)
+
+    deduplicated_ids = set(adj.keys()) - duplicate_ids
+    df = df.filter(list(deduplicated_ids), axis=0)
+
     df.drop(columns=['lower'], inplace=True)
 
     return df
@@ -55,7 +77,6 @@ def deduplicate(df):
 
 def process_abstracts(df):
     """ Clean and combine title and abstract texts.
-
     """
     title_nulls = [
         'no title available',
@@ -88,20 +109,24 @@ def process_abstracts(df):
         df['AwardAbstract']
     )
 
+    # Remove common funder specific boiler plate prefixes from abstracts.
     for term in (
-        'Background',
-        'Background,',
-        'Background:',
-        'BACKGROUND',
-        'Objectives'
+        'background',
+        'background,',
+        'background:',
+        'objectives'
     ):
         # ToDo: Replace with regex.
-        df['AwardAbstract'] = df['AwardAbstract'].str.replace(term, '')
+        df['AwardAbstract'] = np.where(
+            df['AwardAbstract'].str[:len(term)].str.lower() == term,
+            df['AwardAbstract'].str[len(term):],
+            df['AwardAbstract']
+        )
 
     df['AwardAbstract'] = df['AwardAbstract'].str.strip()
     df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
     df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
-    df = df.loc[df['AllText'].str.len() >= 20].copy()
+    df = df.loc[df['AllText'].str.len() >= 110].copy()
 
     df = deduplicate(df)
 
@@ -123,8 +148,10 @@ def build_dataset():
     nihr_df = nihr_df.loc[nihr_df['OrganisationReference'].isin(nihr_refs)]
 
     print('Combining and cleaning datasets...')
-    df = pd.concat([combined_ukhra_df, nihr_df])
+    df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
+
     df = process_abstracts(df)
+    df['HC'] = hc_rename(df['HC'])
 
     # Mixed org data types cause a pyarrow error when saving to parquet.
     df['OrganisationReference'] = df['OrganisationReference'].astype(str)
