@@ -15,7 +15,7 @@ download_data:
 
 .PHONY: build_dataset
 build_dataset:
-	python src/data_processing.py
+	python src/data_processing/data_processing.py
 
 .PHONY: preprocess
 preprocess:
