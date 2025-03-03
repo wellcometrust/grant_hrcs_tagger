@@ -65,10 +65,10 @@ def deduplicate(df):
 
     deduplicated_ids = set()
     duplicate_ids = set()
-    for k, vs in adj.items():
-        if k not in duplicate_ids:
-            deduplicated_ids.add(k)
-            duplicate_ids.update(vs)
+    for node, neighbours in adj.items():
+        if node not in duplicate_ids:
+            deduplicated_ids.add(node)
+            duplicate_ids.update(neighbours)
 
     df = df.filter(list(deduplicated_ids), axis=0)
     df.drop(columns=['lower'], inplace=True)
