@@ -32,7 +32,7 @@ train:
     fi
 	@echo "Training data directory: ${path}"
 
-	echo python src/train.py \
+	python src/train.py \
 		--config-path "config/train_config.yaml" \
 		--train-path "${path}/train.parquet" \
 		--test-path "${path}/test.parquet" \
