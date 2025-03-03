@@ -40,8 +40,6 @@ train:
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
 
-.PHONY: make_training_path
-
 .PHONY: train_ra
 train_ra:
 	$(MAKE) train path="data/preprocessed/ra"
