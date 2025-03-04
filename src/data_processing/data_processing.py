@@ -70,9 +70,7 @@ def deduplicate(df):
             deduplicated_ids.add(node)
             duplicate_ids.update(neighbours)
 
-    # deduplicated_ids = set(adj.keys()) - duplicate_ids
     df = df.filter(list(deduplicated_ids), axis=0)
-
     df.drop(columns=['lower'], inplace=True)
 
     return df

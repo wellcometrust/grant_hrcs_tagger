@@ -26,10 +26,28 @@ preprocess:
 
 .PHONY: train
 train:
+	@if [ -z "${path}" ]; then \
+        echo "Error: path variable is undefined - please specify as make tests path=<path>"; \
+        exit 1; \
+    fi
+	@echo "Training data directory: ${path}"
+
 	python src/train.py \
 		--config-path "config/train_config.yaml" \
-		--train-path "data/preprocessed/ra/train.parquet" \
-		--test-path "data/preprocessed/ra/test.parquet" \
-		--value-counts-path "data/preprocessed/ra/value_counts.json" \
+		--train-path "${path}/train.parquet" \
+		--test-path "${path}/test.parquet" \
+		--value-counts-path "${path}/value_counts.json" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
+
+.PHONY: train_ra
+train_ra:
+	$(MAKE) train path="data/preprocessed/ra"
+
+.PHONY: train_ra_top
+train_ra_top:
+	$(MAKE) train path="data/preprocessed/ra_top"
+
+.PHONY: train_hc
+train_hc:
+	$(MAKE) train path="data/preprocessed/hc"

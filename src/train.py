@@ -198,7 +198,7 @@ def train(
         save_strategy=config['training_settings']['save_strategy'],
         save_total_limit=config['training_settings']['save_total_limit'],
         output_dir=model_path,
-        logging_strategy='epoch'
+        logging_strategy=config['training_settings']['logging_strategy'],
     )
 
     # sort value_counts by key
