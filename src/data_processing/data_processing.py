@@ -63,11 +63,14 @@ def deduplicate(df):
     lsh.update(signatures, df.index)
     adj = lsh.adjacency_list(min_jaccard=0.6)
 
+    deduplicated_ids = set()
     duplicate_ids = set()
-    for k, v in adj.items():
-        duplicate_ids.update(v)
+    for node, neighbours in adj.items():
+        if node not in duplicate_ids:
+            deduplicated_ids.add(node)
+            duplicate_ids.update(neighbours)
 
-    deduplicated_ids = set(adj.keys()) - duplicate_ids
+    # deduplicated_ids = set(adj.keys()) - duplicate_ids
     df = df.filter(list(deduplicated_ids), axis=0)
 
     df.drop(columns=['lower'], inplace=True)
@@ -78,25 +81,35 @@ def deduplicate(df):
 def process_abstracts(df):
     """ Clean and combine title and abstract texts.
     """
-    title_nulls = [
-        'no title available',
-        'award title not available in public dataset'
-    ]
+    title_nulls = ['Award title unavailable',
+        'MRC Studentship - Award title not available in public dataset',
+        'Redacted for public dataset',
+        'award title not available in public dataset',
+        'no title available']
 
-    abstract_nulls = [
+    abstract_nulls = ['(pivotal) study',
+        'abstract not available',
+        'award abstract not available in public dataset',
+        'award abstract unavailable for analysis or public dataset',
         'award abstract unavailable in public dataset',
-        'nihr collaboration for leadership in applied health research and care'
-        ' (clahrc) award - no abstract available',
+        'awardabstract',
         'cso nrs career research fellowship award - no abstract available',
+        'mrc studentship - award abstract not available in public dataset',
         'nihr biomedical research centre (brc) award - no abstract available',
+        'nihr biomedical research unit (bru) award - no abstract available',
+        'nihr collaboration for leadership in applied health research and care (clahrc) award - no abstract available',
         'nihr healthcare technology cooperative (htc) - no abstract available',
-        'nihr imperial patient safety translational research centre -'
-        ' no abstract available',
-        'rare diseases translational research collaboration (trc)'
-        ' - no abstract available',
-        'no abstract'
-    ]
-
+        'nihr imperial patient safety translational research centre - no abstract available',
+        'no abstract',
+        'no abstract available for this analysis',
+        'no abstract available for this analysis.',
+        'no abstract available/provided',
+        'no abstract available/provided or marked confidential',
+        'no abstract provided for this analysis',
+        'paper abstract only',
+        'rare diseases translational research collaboration (trc) - no abstract available',
+        'redacted for public dataset']
+    
     df['AwardTitle'] = np.where(
         df['AwardTitle'].str.strip().str.lower().isin(title_nulls),
         '',
