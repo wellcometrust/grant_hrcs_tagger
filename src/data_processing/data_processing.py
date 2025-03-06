@@ -79,20 +79,30 @@ def deduplicate(df):
 def process_abstracts(df):
     """ Clean and combine title and abstract texts.
     """
-    title_nulls = ['Award title unavailable',
-        'MRC Studentship - Award title not available in public dataset',
-        'Redacted for public dataset',
-        'award title not available in public dataset',
+    
+    # titles and abstracts for which we like to drop the grants
+    title_drop = ['mrc studentship - award title not available in public dataset',
+                  'award title unavailable in public dataset'
+                  'redacted for public dataset',
+                  'no data entered']
+    
+    abstract_drop = ['award abstract not available in public dataset',
+                    'award abstract unavailable in public dataset'
+                    'mrc studentship - award abstract not available in public dataset',
+                    'redacted for public dataset']
+
+    # titles and abstracts for grants we like to keep but for which the title or abstract is not informative
+    title_nulls = ['award title unavailable',
+        'award title unavailable in public dataset',
         'no title available']
 
     abstract_nulls = ['(pivotal) study',
         'abstract not available',
         'award abstract not available in public dataset',
         'award abstract unavailable for analysis or public dataset',
-        'award abstract unavailable in public dataset',
         'awardabstract',
+        'no data entered',
         'cso nrs career research fellowship award - no abstract available',
-        'mrc studentship - award abstract not available in public dataset',
         'nihr biomedical research centre (brc) award - no abstract available',
         'nihr biomedical research unit (bru) award - no abstract available',
         'nihr collaboration for leadership in applied health research and care (clahrc) award - no abstract available',
@@ -105,9 +115,13 @@ def process_abstracts(df):
         'no abstract available/provided or marked confidential',
         'no abstract provided for this analysis',
         'paper abstract only',
-        'rare diseases translational research collaboration (trc) - no abstract available',
-        'redacted for public dataset']
+        'rare diseases translational research collaboration (trc) - no abstract available']
     
+    # Drop grants with titles and abstracts that are not informative
+    df = df.loc[~df['AwardTitle'].str.strip().str.lower().isin(title_drop)]
+    df = df.loc[~df['AwardAbstract'].str.strip().str.lower().isin(abstract_drop)]
+
+    # Replace null titles and abstracts with empty strings
     df['AwardTitle'] = np.where(
         df['AwardTitle'].str.strip().str.lower().isin(title_nulls),
         '',
@@ -119,6 +133,19 @@ def process_abstracts(df):
         '',
         df['AwardAbstract']
     )
+
+    # Remove grants that start with 'pivotal nurse support contract'
+    df['AwardTitle'] = df['AwardTitle'].fillna('')
+    df = df.loc[~df['AwardTitle'].str.lower().str.startswith('pivotal nurse support contract')]
+
+    # Remove grants that start with 'nihr in-practice fellowship'
+    df = df.loc[~df['AwardTitle'].str.lower().str.startswith('nihr in-practice fellowship')]
+
+    # Remove grants that start with 'nurture: national unified renal'
+    df = df.loc[~df['AwardTitle'].str.lower().str.startswith('nurture: national unified renal')]
+
+    # Remove grants that start with ''qi project: assist-ckd'
+    df = df.loc[~df['AwardTitle'].str.lower().str.startswith('qi project: assist-ckd')]
 
     # Remove common funder specific boiler plate prefixes from abstracts.
     for term in (
@@ -135,8 +162,8 @@ def process_abstracts(df):
         )
 
     df['AwardAbstract'] = df['AwardAbstract'].str.strip()
-    df['AllText'] = df['AwardTitle'] + ' ' + df['AwardAbstract']
-    df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
+    df['AllText'] = df['AwardTitle'].fillna('') + ' ' + df['AwardAbstract'].fillna('')
+    # df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
     df = df.loc[df['AllText'].str.len() >= 110].copy()
 
     df = deduplicate(df)
@@ -160,6 +187,10 @@ def build_dataset():
 
     print('Combining and cleaning datasets...')
     df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
+    df['OrganisationReference'] = df['OrganisationReference'].astype(str)
+    df['AllText'] = df['AwardTitle'].fillna('') + ' ' + df['AwardAbstract'].fillna('')
+    df['index'] = df.index
+    df.to_parquet('data/clean/pre_clean.parquet', index=False)
 
     df = process_abstracts(df)
     df['HC'] = hc_rename(df['HC'])
