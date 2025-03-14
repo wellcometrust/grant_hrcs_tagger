@@ -280,12 +280,10 @@ def prepare_compute_metrics(config):
 
             # Loop through each sample's logits
             for i, logit in enumerate(logits):
-                # Get the indices of the logits sorted by value in descending
-                # order
+                # Get the indices of the logits sorted by value in descending order
                 sorted_indices = np.argsort(logit)[::-1]
 
-                # Assign 1 to the top logits that exceed their respective
-                # thresholds
+                # Assign 1 to the top logits that exceed their respective thresholds
                 for rank, idx in enumerate(sorted_indices):
                     if logit[idx] > thresholds[rank]:
                         predictions[i, idx] = 1
@@ -310,21 +308,15 @@ def prepare_compute_metrics(config):
         f1 = f1_score(labels, predictions, average=None)
         precision = precision_score(labels, predictions, average=None)
         recall = recall_score(labels, predictions, average=None)
-        print(
-            {
-                "f1": f1,
-                "f1_macro": f1_macro,
-                "f1_micro": f1_micro,
-                "precision": precision,
-                "recall": recall}
-            )
-        return {
+        metrics = {
             "f1": f1,
             "f1_macro": f1_macro,
             "f1_micro": f1_micro,
             "precision": precision,
             "recall": recall
         }
+        print(metrics)
+        return metrics
 
     return compute_metrics
 
