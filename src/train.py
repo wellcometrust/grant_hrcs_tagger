@@ -198,15 +198,13 @@ def train(
         logging_strategy=config['training_settings']['logging_strategy'],
     )
 
-    HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
-    HRCS_values = [1/value for value in HRCS_values]
-
-    # set class weights
-    class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
-
     compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
     if class_weighting:
+        total_count = sum(class_counts)
+        HRCS_values = [1/(value/total_count) for value in class_counts]
+        class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
+
         trainer = WeightedTrainer(
             model=model,
             args=training_args,
