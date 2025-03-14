@@ -55,24 +55,19 @@ def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
     return train, test
 
 
-def save_train_test_data(train, test, value_counts, output_dir):
+def save_train_test_data(train, test, output_dir):
     """
     Save training and test data to disk.
 
     Args:
         train (pd.DataFrame): Training data.
         test (pd.DataFrame): Test data.
-        value_counts (dict): Mapping of label to count in the dataset.
         output_dir (str): Output directory.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     train.to_parquet(output_dir + '/train.parquet')
     test.to_parquet(output_dir + '/test.parquet')
-
-    # save value_counts
-    with open(output_dir+'/value_counts.json', 'w') as f:
-        json.dump(value_counts, f)
 
 
 @click.command()
@@ -101,14 +96,8 @@ def processing_pipeline(config, clean_data, output_dir):
             config['preprocess_settings']['test_train_split']
         )
 
-        # calculate the value counts for each label (to compare evaluating
-        # metrics against the distribution of labels)
-        data_exploded = data.explode(category)
-        value_counts = data_exploded[category].value_counts()
-        value_counts = value_counts.to_dict()
-
         output_sub_dir = f'{output_dir}/{category.lower()}'
-        save_train_test_data(train, test, value_counts, output_sub_dir)
+        save_train_test_data(train, test, output_sub_dir)
 
 
 if __name__ == "__main__":
