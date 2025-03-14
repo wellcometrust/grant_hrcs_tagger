@@ -362,7 +362,6 @@ def plot_metrics(metrics, class_labels, class_counts):
 
 
 def run_training(args):
-    print('Started')
     timestamp = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
     model_name = config['training_settings']['model']
     model_path = f'{args.model_dir}/{model_name}_{timestamp}'
@@ -389,11 +388,11 @@ def run_training(args):
         test_data,
         model_path=model_path,
         config=config,
-        class_labels=class_labels,
+        class_counts=class_counts,
         class_weighting=class_weighting
     )
 
-    #plot_metrics(metrics, class_labels)
+    plot_metrics(metrics, class_labels, class_counts)
 
 
 if __name__ == "__main__":
@@ -403,11 +402,6 @@ if __name__ == "__main__":
     dp = 'data/preprocessed'
     parser.add_argument('--train-path', type=str, default=f'{dp}/train.parquet')
     parser.add_argument('--test-path', type=str, default=f'{dp}/test.parquet')
-    parser.add_argument(
-        '--value-counts-path',
-        type=str,
-        default=f'{dp}/value_counts.json'
-    )
     parser.add_argument(
         '--label-names-path',
         type=str,
