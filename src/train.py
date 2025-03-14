@@ -180,9 +180,22 @@ def train(
     model.to(device)
 
     # initialize training arguments
-    settings = config['training_settings']
-    settings['output_dir'] = model_path
-    training_args = TrainingArguments(**config['training_settings'])
+    training_args = TrainingArguments(
+        learning_rate=config['training_settings']['learning_rate'],
+        num_train_epochs=config['training_settings']['num_train_epochs'],
+        per_device_train_batch_size=config['training_settings'][
+            'per_device_train_batch_size'
+        ],
+        per_device_eval_batch_size=config['training_settings'][
+            'per_device_eval_batch_size'
+        ],
+        weight_decay=config['training_settings']['weight_decay'],
+        report_to=config['training_settings']["report_to"],
+        save_strategy=config['training_settings']['save_strategy'],
+        save_total_limit=config['training_settings']['save_total_limit'],
+        output_dir=model_path,
+        logging_strategy=config['training_settings']['logging_strategy'],
+    )
 
     compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
