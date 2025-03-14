@@ -104,18 +104,18 @@ class HRCSDataset(torch.utils.data.Dataset):
 
 
 def train(
-        train_data_path,
-        test_data_path,
+        train_data,
+        test_data,
         model_path,
         config,
-        value_counts,
+        class_counts,
         class_weighting):
     """
     Finetune a model from the config for the UKHRA data.
 
     Args:
-        train_data_path (str): Path to training data.
-        test_data_path (str): Path to test data.
+        train_data (pd.DataFrame): Training dataframe
+        test_data (pd.DataFrame): Test dataframe
         model_path (str): Path to save model.
         config (dict): Configuration dictionary.
 
@@ -123,9 +123,6 @@ def train(
         dict: Evaluation metrics.
     """
     # tokenize data and create datasets
-    train_data = pd.read_parquet(train_data_path)
-    test_data = pd.read_parquet(test_data_path)
-
     tokenizer = AutoTokenizer.from_pretrained(
         config['training_settings']['model']
     )
@@ -201,12 +198,6 @@ def train(
         logging_strategy=config['training_settings']['logging_strategy'],
     )
 
-    # sort value_counts by key
-    value_counts = {
-        k: v for k, v in sorted(value_counts.items(), key=lambda item: item[0])
-    }
-
-    HRCS_values = list(value_counts.values())
     HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
     HRCS_values = [1/value for value in HRCS_values]
 
@@ -340,38 +331,32 @@ def prepare_compute_metrics(config):
     return compute_metrics
 
 
-def plot_metrics(metrics, value_counts):
+def plot_metrics(metrics, class_labels, class_counts):
     """ Plot evaluation metrics and value counts in wandb
 
     Args:
         metrics (dict): Evaluation metrics.
-        value_counts (dict): Mapping of label to count in the dataset
+        class_labels (list): List of class labels.
+        class_counts (list): List of class counts.
+
     """
-    # plot f1 per label
+    # pull in label names
+    with open(args.label_names_path, 'r') as f:
+        label_names = {k: v for line in f for k, v in json.loads(line).items()}
+
+    # add in the RA full name for reporting.
+    if 'RA' in config['training_settings']['category']:
+        with open(args.label_names_path, 'r') as f:
+            label_names = {k: v for line in f for k, v in json.loads(line).items()}
+        class_labels = [f'{label}-{label_names[label]}' for label in class_labels]
+    
     f1 = metrics['eval_f1']
     precision = metrics['eval_precision']
     recall = metrics['eval_recall']
-    # order metrics to align with value_counts index
-    value_count_keys = list(value_counts.keys())
-    metric_idx = [value_count_keys.index(label) for label in value_count_keys]
-    f1 = [f1[idx] for idx in metric_idx]
-    precision = [precision[idx] for idx in metric_idx]
-    recall = [recall[idx] for idx in metric_idx]
-
-    data = [
-        [
-            label, precision, recall, f1, value_count
-        ] for label, precision, recall, f1, value_count in zip(
-            value_counts.keys(),
-            precision,
-            recall,
-            f1,
-            value_counts.values()
-        )
-    ]
+    data = zip(class_labels, precision, recall, f1, class_counts)
 
     table = wandb.Table(
-        data=data,
+        data=[list(values) for values in data],
         columns=["label", "precision", "recall", "f1", "value_count"]
     )
 
@@ -379,6 +364,7 @@ def plot_metrics(metrics, value_counts):
 
 
 def run_training(args):
+    print('Started')
     timestamp = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
     model_name = config['training_settings']['model']
     model_path = f'{args.model_dir}/{model_name}_{timestamp}'
@@ -386,38 +372,30 @@ def run_training(args):
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
-    # pull in label names and value counts
-    with open(args.value_counts_path, 'r') as f:
-        value_counts = json.load(f)
+    train_data = pd.read_parquet(args.train_path)
+    test_data = pd.read_parquet(args.test_path)
 
-    with open(args.label_names_path, 'r') as f:
-        label_names = {k: v for line in f for k, v in json.loads(line).items()}
+    class_labels = list(train_data.columns[:-1])
+    class_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
 
-    # add in the RA full name for reporting.
-    if 'RA' in config['training_settings']['category']:
-        value_counts = {
-            label+"-"+label_names[label]: count for label,
-            count in value_counts.items()
-        }
+    #wandb.init(
+    #    project=config['wandb_settings']['project_name'],
+    #    config=config['training_settings']
+    #)
 
-    wandb.init(
-        project=config['wandb_settings']['project_name'],
-        config=config['training_settings']
-    )
+    #wandb.log({"model_path": model_path})
 
-    wandb.log({"model_path": model_path})
+    #class_weighting = config['training_settings']['class_weighting']
+    #metrics = train(
+    #    train_data,
+    #    test_data,
+    #    model_path=model_path,
+    #    config=config,
+    #    class_labels=class_labels,
+    #    class_weighting=class_weighting
+    #)
 
-    class_weighting = config['training_settings']['class_weighting']
-    metrics = train(
-        train_data_path=args.train_path,
-        test_data_path=args.test_path,
-        model_path=model_path,
-        config=config,
-        value_counts=value_counts,
-        class_weighting=class_weighting
-    )
-
-    plot_metrics(metrics, value_counts)
+    #plot_metrics(metrics, class_labels)
 
 
 if __name__ == "__main__":
