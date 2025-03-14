@@ -37,7 +37,6 @@ train:
 		--config-path "config/train_config.yaml" \
 		--train-path "${path}/train.parquet" \
 		--test-path "${path}/test.parquet" \
-		--value-counts-path "${path}/value_counts.json" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
 

@@ -376,22 +376,22 @@ def run_training(args):
     class_labels = list(train_data.columns[:-1])
     class_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
 
-    #wandb.init(
-    #    project=config['wandb_settings']['project_name'],
-    #    config=config['training_settings']
-    #)
+    wandb.init(
+        project=config['wandb_settings']['project_name'],
+        config=config['training_settings']
+    )
 
-    #wandb.log({"model_path": model_path})
+    wandb.log({"model_path": model_path})
 
-    #class_weighting = config['training_settings']['class_weighting']
-    #metrics = train(
-    #    train_data,
-    #    test_data,
-    #    model_path=model_path,
-    #    config=config,
-    #    class_labels=class_labels,
-    #    class_weighting=class_weighting
-    #)
+    class_weighting = config['training_settings']['class_weighting']
+    metrics = train(
+        train_data,
+        test_data,
+        model_path=model_path,
+        config=config,
+        class_labels=class_labels,
+        class_weighting=class_weighting
+    )
 
     #plot_metrics(metrics, class_labels)
 
