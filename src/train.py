@@ -320,13 +320,14 @@ def prepare_compute_metrics(config):
     return compute_metrics
 
 
-def plot_metrics(metrics, class_labels, class_counts):
+def plot_metrics(metrics, class_labels, train_counts, test_counts):
     """ Plot evaluation metrics and value counts in wandb
 
     Args:
         metrics (dict): Evaluation metrics.
         class_labels (list): List of class labels.
-        class_counts (list): List of class counts.
+        train_counts (list): List of class counts for train dataset.
+        test_counts (list): List of class counts for test dataset.
 
     """
     # pull in label names
@@ -342,11 +343,11 @@ def plot_metrics(metrics, class_labels, class_counts):
     f1 = metrics['eval_f1']
     precision = metrics['eval_precision']
     recall = metrics['eval_recall']
-    data = zip(class_labels, precision, recall, f1, class_counts)
+    data = zip(class_labels, precision, recall, f1, train_counts, test_counts)
 
     table = wandb.Table(
         data=[list(values) for values in data],
-        columns=["label", "precision", "recall", "f1", "value_count"]
+        columns=["label", "precision", "recall", "f1", "train_count", "test_count"]
     )
 
     wandb.log({"metrics and value_count table": table})
@@ -364,7 +365,8 @@ def run_training(args):
     test_data = pd.read_parquet(args.test_path)
 
     class_labels = list(train_data.columns[:-1])
-    class_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
+    train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
+    test_counts = np.sum(test_data[test_data.columns[:-1]].to_numpy(), axis=0)
 
     wandb.init(
         project=config['wandb_settings']['project_name'],
@@ -379,11 +381,11 @@ def run_training(args):
         test_data,
         model_path=model_path,
         config=config,
-        class_counts=class_counts,
+        class_counts=train_counts,
         class_weighting=class_weighting
     )
 
-    plot_metrics(metrics, class_labels, class_counts)
+    plot_metrics(metrics, class_labels, train_counts, test_counts)
 
 
 if __name__ == "__main__":
