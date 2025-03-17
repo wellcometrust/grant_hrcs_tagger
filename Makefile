@@ -12,6 +12,7 @@ download_data:
 	wget -O data/raw/ukhra2018.xlsx https://hrcsonline.net/wp-content/uploads/2020/01/UKHRA2018_HRCS_public_dataset_v1_27Jan2020.xlsx
 	wget -O data/raw/ukhra2014.xlsx https://hrcsonline.net/wp-content/uploads/2018/01/UK_Health_Research_Analysis_Data_2014_public_v1_27Oct2015.xlsx
 	wget -O data/raw/nihr_all.parquet https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
+	@echo "Data download complete!"
 
 .PHONY: build_dataset
 build_dataset:
@@ -36,7 +37,6 @@ train:
 		--config-path "config/train_config.yaml" \
 		--train-path "${path}/train.parquet" \
 		--test-path "${path}/test.parquet" \
-		--value-counts-path "${path}/value_counts.json" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
 

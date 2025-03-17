@@ -63,8 +63,7 @@ class WeightedTrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         """ How the loss is computed by Trainer. By default, all models return
-        the loss in the first element. Subclass and override for custom
-        behavior.
+        the loss in the first element. Subclass and override for custom behavior.
         """
         labels = inputs.pop("labels")
         outputs = model(**inputs)
@@ -104,18 +103,18 @@ class HRCSDataset(torch.utils.data.Dataset):
 
 
 def train(
-        train_data_path,
-        test_data_path,
+        train_data,
+        test_data,
         model_path,
         config,
-        value_counts,
+        class_counts,
         class_weighting):
     """
     Finetune a model from the config for the UKHRA data.
 
     Args:
-        train_data_path (str): Path to training data.
-        test_data_path (str): Path to test data.
+        train_data (pd.DataFrame): Training dataframe
+        test_data (pd.DataFrame): Test dataframe
         model_path (str): Path to save model.
         config (dict): Configuration dictionary.
 
@@ -123,9 +122,6 @@ def train(
         dict: Evaluation metrics.
     """
     # tokenize data and create datasets
-    train_data = pd.read_parquet(train_data_path)
-    test_data = pd.read_parquet(test_data_path)
-
     tokenizer = AutoTokenizer.from_pretrained(
         config['training_settings']['model']
     )
@@ -201,21 +197,13 @@ def train(
         logging_strategy=config['training_settings']['logging_strategy'],
     )
 
-    # sort value_counts by key
-    value_counts = {
-        k: v for k, v in sorted(value_counts.items(), key=lambda item: item[0])
-    }
-
-    HRCS_values = list(value_counts.values())
-    HRCS_values = [value/sum(HRCS_values) for value in HRCS_values]
-    HRCS_values = [1/value for value in HRCS_values]
-
-    # set class weights
-    class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
-
     compute_metrics = prepare_compute_metrics(config)
     # initialize trainer depending on class weighting option
     if class_weighting:
+        total_count = sum(class_counts)
+        HRCS_values = [1/(value/total_count) for value in class_counts]
+        class_weights = torch.tensor(HRCS_values, dtype=torch.float32).to(device)
+
         trainer = WeightedTrainer(
             model=model,
             args=training_args,
@@ -291,12 +279,10 @@ def prepare_compute_metrics(config):
 
             # Loop through each sample's logits
             for i, logit in enumerate(logits):
-                # Get the indices of the logits sorted by value in descending
-                # order
+                # Get the indices of the logits sorted by value in descending order
                 sorted_indices = np.argsort(logit)[::-1]
 
-                # Assign 1 to the top logits that exceed their respective
-                # thresholds
+                # Assign 1 to the top logits that exceed their respective thresholds
                 for rank, idx in enumerate(sorted_indices):
                     if logit[idx] > thresholds[rank]:
                         predictions[i, idx] = 1
@@ -321,58 +307,47 @@ def prepare_compute_metrics(config):
         f1 = f1_score(labels, predictions, average=None)
         precision = precision_score(labels, predictions, average=None)
         recall = recall_score(labels, predictions, average=None)
-        print(
-            {
-                "f1": f1,
-                "f1_macro": f1_macro,
-                "f1_micro": f1_micro,
-                "precision": precision,
-                "recall": recall}
-            )
-        return {
+        metrics = {
             "f1": f1,
             "f1_macro": f1_macro,
             "f1_micro": f1_micro,
             "precision": precision,
             "recall": recall
         }
+        print(metrics)
+        return metrics
 
     return compute_metrics
 
 
-def plot_metrics(metrics, value_counts):
+def plot_metrics(metrics, class_labels, train_counts, test_counts):
     """ Plot evaluation metrics and value counts in wandb
 
     Args:
         metrics (dict): Evaluation metrics.
-        value_counts (dict): Mapping of label to count in the dataset
+        class_labels (list): List of class labels.
+        train_counts (list): List of class counts for train dataset.
+        test_counts (list): List of class counts for test dataset.
+
     """
-    # plot f1 per label
+    # pull in label names
+    with open(args.label_names_path, 'r') as f:
+        label_names = {k: v for line in f for k, v in json.loads(line).items()}
+
+    # add in the RA full name for reporting.
+    if 'RA' in config['training_settings']['category']:
+        with open(args.label_names_path, 'r') as f:
+            label_names = {k: v for line in f for k, v in json.loads(line).items()}
+        class_labels = [f'{label}-{label_names[label]}' for label in class_labels]
+    
     f1 = metrics['eval_f1']
     precision = metrics['eval_precision']
     recall = metrics['eval_recall']
-    # order metrics to align with value_counts index
-    value_count_keys = list(value_counts.keys())
-    metric_idx = [value_count_keys.index(label) for label in value_count_keys]
-    f1 = [f1[idx] for idx in metric_idx]
-    precision = [precision[idx] for idx in metric_idx]
-    recall = [recall[idx] for idx in metric_idx]
-
-    data = [
-        [
-            label, precision, recall, f1, value_count
-        ] for label, precision, recall, f1, value_count in zip(
-            value_counts.keys(),
-            precision,
-            recall,
-            f1,
-            value_counts.values()
-        )
-    ]
+    data = zip(class_labels, precision, recall, f1, train_counts, test_counts)
 
     table = wandb.Table(
-        data=data,
-        columns=["label", "precision", "recall", "f1", "value_count"]
+        data=[list(values) for values in data],
+        columns=["label", "precision", "recall", "f1", "train_count", "test_count"]
     )
 
     wandb.log({"metrics and value_count table": table})
@@ -386,19 +361,12 @@ def run_training(args):
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
-    # pull in label names and value counts
-    with open(args.value_counts_path, 'r') as f:
-        value_counts = json.load(f)
+    train_data = pd.read_parquet(args.train_path)
+    test_data = pd.read_parquet(args.test_path)
 
-    with open(args.label_names_path, 'r') as f:
-        label_names = {k: v for line in f for k, v in json.loads(line).items()}
-
-    # add in the RA full name for reporting.
-    if 'RA' in config['training_settings']['category']:
-        value_counts = {
-            label+"-"+label_names[label]: count for label,
-            count in value_counts.items()
-        }
+    class_labels = list(train_data.columns[:-1])
+    train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
+    test_counts = np.sum(test_data[test_data.columns[:-1]].to_numpy(), axis=0)
 
     wandb.init(
         project=config['wandb_settings']['project_name'],
@@ -409,15 +377,15 @@ def run_training(args):
 
     class_weighting = config['training_settings']['class_weighting']
     metrics = train(
-        train_data_path=args.train_path,
-        test_data_path=args.test_path,
+        train_data,
+        test_data,
         model_path=model_path,
         config=config,
-        value_counts=value_counts,
+        class_counts=train_counts,
         class_weighting=class_weighting
     )
 
-    plot_metrics(metrics, value_counts)
+    plot_metrics(metrics, class_labels, train_counts, test_counts)
 
 
 if __name__ == "__main__":
@@ -427,11 +395,6 @@ if __name__ == "__main__":
     dp = 'data/preprocessed'
     parser.add_argument('--train-path', type=str, default=f'{dp}/train.parquet')
     parser.add_argument('--test-path', type=str, default=f'{dp}/test.parquet')
-    parser.add_argument(
-        '--value-counts-path',
-        type=str,
-        default=f'{dp}/value_counts.json'
-    )
     parser.add_argument(
         '--label-names-path',
         type=str,
