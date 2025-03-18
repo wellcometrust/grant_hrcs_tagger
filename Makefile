@@ -35,7 +35,7 @@ train:
 
 	python src/train.py \
 		--config-path "config/train_config.yaml" \
-		--train-path "${path}/train.parquet" \
+		--train-path "${path}/train_enhanced.parquet" \
 		--test-path "${path}/test.parquet" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
