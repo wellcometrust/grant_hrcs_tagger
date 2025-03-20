@@ -6,8 +6,6 @@ Developed by the Machine Learning team, within Data & Digital at the Wellcome Tr
 ### Data
 Aknowledgement, the data used for this project was compiled as part of the UK Health Research Analysis studies: UK Health Research Analysis 2022 (UK Clinical Research Collaboration , 2023) https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
 
-Aknowledgement, the data used for this project was compiled as part of the UK Health Research Analysis studies: UK Health Research Analysis 2022 (UK Clinical Research Collaboration , 2023) https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
-
 ## Set up
 
 ### 1. Environment set up
