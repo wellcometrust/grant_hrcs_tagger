@@ -1,0 +1,588 @@
+﻿1.1,"Normal biological development and functioning
+Studies of normal biology including:
+genes and gene products
+molecular, cellular and physiological structures and function
+biological pathways and processes including normal immune function
+developmental studies and normal ageing
+bioinformatics and structural studies
+development and characterisation of model systems
+
+Advice on research activities
+To be used for research involving normal biological function including the following:
+
+basic immune and pain responses and wound healing studies that are not linked to a specific disease/condition stimulus
+normal ageing or pregnancy not linked to a condition
+normal stem cell research into differentiation and basic developmental biology of stem cells not linked to therapeutic development
+protein structural studies
+bioinformatics
+normal cell cycle and DNA replication and repair
+Excludes studies characterising proteins or pathways linked to a condition or disease.
+
+Excludes studies of processes associated to cancer which are rarely ‘normal’.
+"
+1.2,"1.2 Psychological and socioeconomic process
+Main inclusion criteria
+Studies that do not address health directly but cover issues that may have a bearing on health and well-being including
+
+perception, cognition and learning processes
+social and cultural beliefs
+individual or group characteristics and behaviours
+politics, economies and urban development
+development and characterisation of model systems
+ 
+
+Advice on research activities
+This includes all normal psychological studies of behaviour, memory and cognitive processes. If the study also involves mapping brain structure it should be double coded 1.1 Biological and 1.2 Psychological and, correspondingly, 50% Neurological and 50% Mental Health.
+
+Excludes studies investigating psychological disorders, however it may be appropriate for studies using patients as controls to understand normal function. "
+1.3,"Chemical and physical sciences
+Main inclusion criteria
+Research in chemical and physical sciences that may lead to the future development of diagnostic tools or medical treatments including
+
+bioengineering and biophysics
+chemical structures, interactions and properties
+molecular modelling
+material science
+ 
+
+Advice on research activities
+For coding all basic chemical, physical and bioengineering research including development of therapeutics or diagnostics underpinning 4 Detection and Diagnosis or 5 Treatment Development code groups.
+
+Excludes crystal structural studies of normal proteins which should be coded as 1.1 Biological."
+1.4,"Methodologies and measurements
+Main inclusion criteria
+Development of novel underpinning research measures and analytical methodologies including
+
+development of statistical methods and algorithms for genomic analysis
+development of mapping methodologies and novel data comparison methods
+development of biological, psychological and socioeconomic research measures
+ 
+
+Advice on research activities
+Methodologies and measurements linked to normal functions. This code may include algorithms for informatics research.
+
+Includes the development and publication on the web of these tools as an outcome of a research project – this is not considered a resource for the community and shouldn’t be coded as 1.5 Underpinning resources.
+"
+1.5,"Resources and infrastructure (underpinning)
+Main inclusion criteria
+development and/or distribution of resources for use by the research community including equipment, cell lines, DNA banks, and genomic and proteomic sequence resources
+infrastructure to support research networks, consortia and centres"
+2.1,"Biological and endogenous factors
+Main inclusion criteria
+Identification and characterisation of endogenous factors known or suspected to be involved in the cause, risk or development of disease, conditions or ill health including
+
+genes and gene products, molecular, cellular and physiological structures and functions
+biological factors linked to ethnicity, age, gender, pregnancy and body weight
+endogenous biological factors or pathways involved in responses to infection or damage by external factors
+metastases, degenerative processes, regeneration and repair
+complications, reoccurrence and secondary conditions
+bioinformatics and structural studies
+development and characterisation of models
+ 
+Advice on research activities
+To be used to code all biological causes of disease including the following
+
+Host cell biological responses to infection
+prion/TSE aetiological studies
+ischemic preconditioning
+Characterisation of pathways to identify candidates that may potentially be used as diagnostic markers should be coded as 2.1 Endogenous risks and not 4.1 Marker discovery.
+
+Characterisation of the biological cause of psychological conditions should be coded as 2.1. However 2.3 Psychological risks can also be used if the study includes investigation of symptoms and characteristics of the psychological condition.
+
+Awards that are focused on therapeutic development or diagnostics will often yield information about the mechanism of a disease. However, this is generally a secondary outcome and shouldn’t be coded 2.1 unless this is clearly stated as one of the primary objective of the research.
+
+Excludes basic immune and pain responses and wound healing studies that are not linked to a specific disease/condition stimulus and normal ageing or pregnancy not linked to a condition which should be coded as 1.1 Biological normal function.
+
+Excludes normal cell cycle and normal DNA repair and replication which should be coded as 1.1 Biological."
+2.2,"Factors relating to physical environment
+Main inclusion criteria
+Environmental or external factors associated with the cause, risk or development of disease, conditions or ill health including:
+
+physical agents, occupational hazards, environmental surroundings, radiation and pollution
+chemicals and nutrients
+infection by pathogens and studies of infectious agents
+ 
+
+Advice on research activities
+Involves characterising or identifying environmental or external factors that are determinants in the cause of conditions or disease e.g. studies of infectious agents.
+
+Many studies will involve investigating the impact of environmental factors on biological systems. It may be appropriate to code to both 2.1 Endogenous risks as well as 2.2 Physical risks if the study involves investigating both the external agent and the biological response to that agent.
+
+Excludes studies of infection with prion protein which should be coded as 2.1 Endogenous risks.
+
+Excludes characterisation of antibiotic resistance genes and mechanisms in bacteria which should be coded as 5.1 Pharmaceuticals."
+2.3,"Psychological, social and economic factors
+Main inclusion criteria
+Research into psychological conditions, or research into the cause, risk or development of disease, conditions or ill health associated with social, psychological and economic factors including
+
+individual or group behaviours and lifestyle
+cultural or religious beliefs or practices
+ethnicity, age and gender differences
+socioeconomic factors
+ 
+
+Advice on research activities
+Includes aetiological studies on psychological illnesses as well as psychological social and economic causes of disease or conditions.
+
+Includes epidemiological studies of behavioural determinants of ill health or risk of ill health.
+
+Excludes studies of normal cognitive processes such as memory, learning and speech which should be coded as 1.2 Psychological.
+
+Excludes characterisation of the biological cause of psychological conditions which should be coded as 2.1 Endogenous risks – however 2.3 Psychological risks can also be used if the study includes investigation of symptoms and characteristics of the psychological condition."
+2.4,"Surveillance and distribution
+Main inclusion criteria
+Observational studies, surveys, registries, and studies that track incidence, prevalence, morbidity, co-morbidity and mortality including ongoing monitoring of large scale cohorts
+
+Advice on research activities
+This code is used for observational studies that are descriptive and do not involve characterising the mechanism or establishing the cause of these observations. These are typically population level studies and should only include studies on humans.
+
+Includes studies of large cohorts – but not every study which utilises data from a cohort will fall into this code."
+2.5,"Research design and methodologies (aetiology)
+Main inclusion criteria
+Development of aetiological and epidemiological research designs, measures and methodologies including
+
+methodological innovation and modelling complex epidemiological data
+development and evaluation of novel research designs
+development of epidemiological research measurements including outcome measures
+development of analytical and statistical methods to understand disease cause, susceptibility and risk including genetic linkage and association studies
+
+Advice on research activities
+Is primarily used for epidemiology methodological development and informatics studies of genetic linkages associated with diseases.
+
+Excludes development of novel methodologies and research designs and measurements in treatment, management and health services research which is 8.4 Research design."
+2.6,"Resources and infrastructure (aetiology)
+Main inclusion criteria
+development and/or distribution of resources for general use by the research community including equipment, cell lines, tissue and DNA banks, and genomic and proteomic sequence resources
+infrastructure to support research networks, consortia and centres"
+3.1,"Primary prevention interventions to modify behaviours or promote well-being
+Main inclusion criteria
+Development, implementation and evaluation of interventions to modify personal or group behaviours and lifestyles affecting health and well-being including
+
+risk behaviours associated with diet, tobacco use, physical activity, alcohol consumption, sexual health and substance misuse
+age, gender, cultural or religious practices
+public health policy, health communication and educational interventions
+behavioural, psychological, social and physical interventions
+ 
+Advice on research activities
+Includes behavioural interventions aimed at primary disease prevention or health protection.
+
+Excludes epidemiology studies establishing cause or incidences of these behaviours which should be coded within the 2 Aetiology code group."
+3.2,"Interventions to alter physical and biological environmental risks
+Main inclusion criteria
+Development, implementation and evaluation of interventions surrounding physical, biological and environmental risk factors including
+
+radiation, second-hand smoke, physical and chemical agents, occupational hazards and environmental surroundings
+contraceptive devices
+infectious agents
+policy, educational and physical interventions
+ 
+
+Advice on research activities
+Includes physical contraceptives."
+3.3,"Nutrition and chemoprevention
+Main inclusion criteria
+Research on chemopreventative agents and health protective effects of nutrients including
+
+development, characterisation and mechanism of action
+chemical contraceptives
+testing and evaluation in model systems and clinical, applied and community settings
+evaluation of evidence to inform policy
+
+Advice on research activities
+Includes studies focused on the potentially health protective effects of specific nutrients, probiotics and nutritional supplements plus chemopreventative studies including oral contraceptives.
+
+Excludes general epidemiological studies of the effects of nutrition on health or association with disease.
+
+Excludes studies where nutrients, probiotics and/or nutritional supplements are used as therapeutics treatments. Such studies should be coded as 5.1 Pharmaceuticals if in pre-clinical development or 6.1 Pharmaceuticals if in a clinical/applied setting.
+
+Exclude studies on microbiota transplantation. These are consider cell treatments and should be coded as 5.2 Cellular and Gene Therapy for pre-clinical or 6.2 Cellular and Gene Therapy for clinical/applied."
+3.4,"Vaccines
+Main inclusion criteria
+Research on vaccines for prevention of disease including
+
+discovery, development and testing of vaccines and vaccination in model systems
+mechanism of action
+development, implementation and evaluation of vaccination programmes and studies to increase uptake
+decision making, outcomes from vaccination and evaluation of evidence to inform policy
+ 
+Advice on research activities
+Most vaccines are protective against infection and consequently the majority of vaccine development will be given this code.
+
+Excludes the minority of vaccine studies that are being developed or used for treatment (which would fall into 5.1 Pharmaceuticals or 6.1 Pharmaceuticals)."
+3.5,"Resources and infrastructure (prevention)
+Main inclusion criteria
+development and/or distribution of resources for use by the research community including equipment, cell lines, tissue and DNA banks
+infrastructure to support research trials, networks, consortia and centres"
+4.1,"Discovery and preclinical testing of markers and technologies
+Main inclusion criteria
+Discovery, development and preclinical testing of novel markers (that may be derived from patient samples) and technologies for use in detection, diagnosis, prediction, prognosis and monitoring including
+biological and psychological markers
+diagnostic and monitoring devices, imaging, scanning, predictive and diagnostic tests
+development and characterisation of models
+diagnostic measures and methodologies
+ 
+Advice on research activities
+Note the word ‘discovery’ in this context is a medical term referring to determining if a marker is suitable for use in diagnosis/prognosis. This is distinct from the primary identification of candidates that may be potentially used as diagnostic markers, which would be coded in 2 Aetiology.
+
+Therefore this code is suitable for use if potential diagnostic targets have already been identified in preliminary aetiological studies characterising specific pathways and these potential markers are now being verified in the discovery and testing stage.
+
+Includes pre-clinical investigation of potential diagnostics, however these studies can include patient samples if they are being used in the diagnostic development phase.
+Excludes clinical and applied testing in humans, once verified in the laboratory, often in a trial or studies that involve a group of people. Such studies should be coded 4.2 Marker evaluation."
+4.2,"Evaluation of markers and technologies
+Main inclusion criteria
+Testing and evaluation of markers and technologies in humans for use in detection, diagnosis, prediction, prognosis and monitoring in clinical, community or applied settings including
+
+assessment of sensitivity, efficacy, specificity, predictive and prognostic value, reproducibility and safety
+medical devices, imaging, diagnostic and predictive tests
+evaluation of diagnostic models, methods and methodologies in clinical or applied settings
+
+Advice on research activities
+Includes clinical and applied testing in humans, once verified in the laboratory, often in a trial or studies that involve a group of people.
+
+Excludes pre-clinical investigation of potential diagnostics, which can include patient samples if they are being used in the diagnostic development phase. Such studies should be coded 4.1 Marker discovery."
+4.3,"Influences and impact
+Main inclusion criteria
+Studies investigating impact of screening and factors affecting uptake including
+
+attitudes and beliefs including cultural and religious practices
+issues relating to gender, age and ethnicity
+genetic counselling and decision making
+psychological, social and economic factors
+development, implementation and evaluation of interventions to promote screening including policy, education and communication"
+4.4,"Population screening
+Main inclusion criteria
+Studies investigating population screening programmes including:
+
+feasibility studies, pilot studies and trials
+evaluation of effectiveness, benefits and economic evaluation
+impact on health services and policy issues
+models of population surveillance
+
+Advice on research activities
+Population screening of specific target population groups e.g. bowel cancer screening, foetal ultrasound screening.
+
+This code is not suitable for individual diagnostic screening procedures e.g. brain scans."
+4.5,"Resources and infrastructure (detection)
+Main inclusion criteria
+development and/or distribution of resources for use by the research community including equipment, cell lines, tissue and DNA banks, and informatics systems
+infrastructure support for research trials, networks, consortia and centres"
+5.1,"Pharmaceuticals
+Main inclusion criteria
+Identification and development of pharmaceutical small molecules, therapeutic vaccines, antibodies and hormones including:
+
+drug screening and development of delivery systems
+mechanism of action including side effects and drug resistance
+pharmacogenetics, prediction of genetic variation and responses to drugs
+testing in in vitro and in vivo model systems
+ 
+Advice on research activities
+In general this code should be used to characterise therapeutic targets rather than for their initial identification. It includes mechanism of action but should not be used to code studies where agonists or inhibitors are used as part of the methodology to understand the mechanism of other systems.
+
+Includes mechanism of action and resistance to therapeutics. This includes characterisation of antibiotic resistance genes and mechanisms in bacteria which should not be coded as 2.2 Physical risks for cause of disease.
+
+Includes studies predicting responses to therapies.
+
+Includes studies of nutritional supplements used as treatments for disease.
+
+Excludes studies focused on the potentially chemopreventative / health protective effects of specific nutrients, probiotics and nutritional supplements, which should be coded 3.3 Nutritional Prevention."
+5.2,"Cellular and gene therapies
+Main inclusion criteria
+Discovery and development of cellular, tissue and gene therapies including:
+
+gene therapy, stem cells therapy, in vitro fertilisation and tissue engineering
+Fecal microbiota transplantation (FMT)
+development of delivery systems
+development of culture systems
+testing in in vitro and in vivo model systems
+ 
+
+Advice on research activities
+This code is suitable for studies involving in vivo stem cell research particularly tissue regeneration or repair of damaged tissue and generation of stem cell lines.
+
+Cell therapy studies involve a transplantation process but they should not be coded as 5.4 Surgery too. An exception to this is surgical transplantation of bone marrow stem cells for cancer treatment, which is considered a similar process to organ transplantation, and should therefore be coded as 5.4 Surgery.
+
+Excludes basic developmental biology of stem cell fate which should be coded as 1.1 Biological."
+5.3,"Medical devices
+Main inclusion criteria
+Discovery and development of medical devices including:
+
+implantable devices, mobility aids, dressings, medical equipment and prostheses
+biological safety assessments and investigation of adverse events
+sterilisation and decontamination of equipment or surfaces
+testing in in vitro and in vivo model systems"
+5.4,"Surgery
+Main inclusion criteria
+Development of surgical, obstetric and dental interventions including:
+
+histocompatability, transfusions, transplantations including xenograft studies and bone marrow transplants
+mechanisms of recovery, tolerance, rejection and side effects including infection
+testing in in vitro and in vivo model systems
+
+Advice on research activities
+Includes obstetrics and dental research and tissue grafts, whole organ or bone marrow transplants.
+
+Includes all aspects of research related to development of surgery and surgical procedures.
+
+Includes studies on understanding transplant tolerance and rejection.
+
+Includes invasive mechanical procedures.
+
+Excludes cell grafts, cell transplants and cell therapies which will involve transplantation but should only be coded as 5.2 Cellular and gene therapies."
+5.5,"Radiotherapy and other non-invasive therapies
+Main inclusion criteria
+Discovery and development of interventions including:
+
+radiobiology, radiotherapy, radioimmunotherapy, radiosensitisers, microwaves, ultrasound, laser and phototherapy
+development of delivery systems
+investigation of mechanisms of action and side effects
+testing in in vitro and in vivo model systems"
+5.6,"Psychological and behavioural
+Main inclusion criteria
+Development of psychological and behavioural interventions including
+
+cognitive behavioural therapy, electro-convulsive therapy, counselling, therapy and social interventions
+testing in model systems
+
+Advice on research activities
+It is difficult to develop behavioural and psychological interventions without involvement of human participants.
+
+Use 5.6 Psychological and Behavioural for studies involving the development and testing of new behavioural therapies and psychological interventions in pre-clinical and model settings.
+
+Examples include preliminary qualitative work (e.g. literature reviews, discussions with patients and practitioners) development of the techniques/technologies to be used in the therapy (e.g. questionnaires, computer programmes). Testing may involve human participants and still considered 5 Treatment Development if few in number, involve volunteers (not patients), and/or are clearly identified as preceding formal pilot studies and clinical trials.
+
+Use 6.6 Psychological and Behavioural for studies involving human participants in direct clinical applications.
+
+These will typically involve both pilot studies on small numbers of patients to assess viability of new treatments, and larger phase I-IV clinical trials which formally evaluate new or modified treatments against existing procedures."
+5.7,"Physical
+Main inclusion criteria
+Development of physical interventions including:
+
+physical therapies, physiotherapy, occupational therapy, speech therapy, dietetics, exercise and osteopathy
+mechanisms of action
+testing in model systems
+ 
+Advice on research activities
+Excludes studies of nutritional supplements which should be coded as 5.1 Pharmaceuticals."
+5.8,"Complementary
+Main inclusion criteria
+Discovery and development of complementary approaches to conventional medical therapies including:
+
+hypnotherapy, meditation, massage, acupuncture and homeopathy
+mechanisms of action
+testing in model systems"
+5.9,"Resources and infrastructure (treatment development)
+Main inclusion criteria
+development and/or distribution of resources for general use by the research community including equipment, cell lines, tissue and DNA banks
+infrastructure support for networks, consortia and centres"
+6.1,"Pharmaceuticals
+Main inclusion criteria
+Clinical application and evaluation of pharmaceutical small molecules, therapeutic vaccines, antibodies and hormones in humans including:
+
+small scale settings and pilot studies
+phase I, II, III and IV trials
+assessing sensitivity, efficacy, specificity, relapse, survival, therapeutic value, pharmacokinetics, reproducibility and safety
+studies monitoring response, outcome, drug resistance and side effects
+
+Advice on research activities
+Includes studies of nutritional supplements used as treatments for disease.
+
+Excludes studies focused on the potentially chemopreventative / health protective effects of specific nutrients, probiotics and nutritional supplements, which should be coded 3.3 Nutritional Prevention."
+6.2,"Cellular and gene therapies
+Main inclusion criteria
+Clinical application and evaluation of cellular, tissue and gene therapies in humans including:
+
+small scale and pilot studies
+phase I, II, III and IV trials
+gene therapy, stem cell therapy, in vitro fertilisation, tissue engineering
+evaluation of applied delivery systems
+ 
+Advice on research activities
+This code is suitable for studies involving stem cell therapies, particularly tissue regeneration or repair of damaged tissue, in clinical and applied settings.
+
+Cell therapy can often involve a transplantation process but they should not be coded as 6.4 Surgery too. An exception to this is surgical transplantation of bone marrow stem cells for cancer treatment, which is considered a similar process to organ transplantation, and should therefore be coded as 6.4 Surgery.
+
+Excludes basic developmental biology of stem cell fate which should be coded as 1.1 Biological."
+6.3,"Medical devices
+Main inclusion criteria
+Application and evaluation of medical devices in humans in a clinical, community or applied setting including
+
+implantable devices, mobility aids, dressings, medical equipment and prostheses
+validation of design and post market surveillance"
+6.4,"Surgery
+Main inclusion criteria
+Clinical and applied application and evaluation of surgical, obstetric and dental interventions in humans including:
+
+small scale and pilot studies
+phase I, II, III and IV trials
+procedures including organ and bone marrow transplantation, tissue grafts and transfusions
+monitoring outcomes, side effects and rejection
+
+Advice on research activities
+Includes invasive mechanical procedures."
+6.5,"Radiotherapy and other non-invasive therapies
+Main inclusion criteria
+Clinical application and evaluation of interventions in humans including:
+
+small scale and pilot studies
+phase I, II, III and IV trials
+radiotherapy, radioimmunotherapy and radiosensitisers, microwaves, ultrasound, laser and phototherapy
+monitoring side effects
+
+Advice on research activities
+In addition to radiotherapy includes electromagnetic therapies and phototherapies."
+6.6,"Psychological and behavioural
+Main inclusion criteria
+Application and evaluation of psychological and behavioural interventions in humans in clinical, community and applied settings including:
+
+phase I, II, III and IV trials
+cognitive behavioural therapy, electro-convulsive therapy, counselling, therapy and social interventions
+
+Advice on research activities
+It is difficult to develop behavioural and psychological interventions without involvement of human participants.
+
+Use 5.6 Psychological and Behavioural for studies involving the development and testing of new behavioural therapies and psychological interventions in pre-clinical and model settings.
+
+Examples include preliminary qualitative work (e.g. literature reviews, discussions with patients and practitioners) development of the techniques/technologies to be used in the therapy (e.g. questionnaires, computer programmes). Testing may involve human participants and still considered treatment development if few in number, involve volunteers (not patients), and/or are clearly identified as preceding formal pilot studies and clinical trials.
+
+Use 6.6 Psychological and Behavioural for studies involving human participants in direct clinical applications.
+
+These will typically involve both pilot studies on small numbers of patients to assess viability of new treatments, and larger phase I-IV clinical trials which formally evaluate new or modified treatments against existing procedures."
+6.7,"Physical
+Main inclusion criteria
+Testing and evaluation of physical interventions in humans in a clinical, community or applied setting including:
+
+physical therapies, physiotherapy, occupational therapy, speech therapy, dietetics, osteopathy and exercise
+
+Advice on research activities
+Includes physical therapies such as temperature and increased oxygen levels.
+
+Excludes studies of nutritional supplements which should be coded as 6.1 Pharmaceuticals."
+6.8,"Complementary
+Main inclusion criteria
+All aspects of testing, evaluation and provision of complementary approaches to conventional medicine in humans in a clinical, community or applied setting including:
+
+hypnotherapy, massage, acupuncture and homeopathy
+issues relating to health and social services and health care delivery
+attitudes and beliefs of patients and health care professionals"
+6.9,"Resources and infrastructure (treatment evaluation)
+Main inclusion criteria
+provision and distribution of resources related to clinical and applied therapeutic interventions
+infrastructure support for clinical and applied research networks and trials, consortia and centres"
+7.1,"Individual care needs
+Main inclusion criteria
+Studies of patients and service user care needs including:
+
+quality of life, management of acute and chronic symptoms, management of side effects, rehabilitation, long term morbidity and reproductive issues
+psychological impact of illness
+social and economic consequences of ill health
+behaviour affecting disease management including secondary prevention, compliance to treatment and attitudes and beliefs relating to seeking treatment
+assessment of social care and health services needs
+educational or communication interventions to promote self-care or improve health care by carers
+impact on carers
+
+Advice on research activities
+Includes research into or promoting management of diseases or conditions by service users such as user education and communication research.
+
+Excludes services users experiences of health services which should be coded as 8.1 Organisation and delivery of services.
+
+Do not use to code for the quality of life component of a therapeutic trial – code for the therapeutic investigation only."
+7.2,"End of life care
+Main inclusion criteria
+Studies involving all issues related to palliative care and end of life care including:
+
+assessment of patient, service user and carer needs
+provision and evaluation of palliative and end of life care services
+quality of life for patients and carers
+evaluation of interventions for health and social care professionals
+social, economic and policy issues
+pain management for terminally ill people
+bereavement"
+7.3,"Management and decision making
+Main inclusion criteria
+Studies into all aspects of the management of diseases, ill health and conditions by health and social care professionals, including:
+
+attitudes, beliefs and behaviours of health and social care professionals
+investigation of decision making including factors influencing diagnosis, treatment, referral and management strategies
+educational interventions and communication practices
+development of guidelines, interventions or models to assist decision making and management, including identifying symptoms, predicting outcomes and identifying individuals at risk
+testing and evaluating management regimes and strategies
+ 
+Advice on research activities
+Includes research about and relating to health care professionals as individuals.
+
+Includes development of models to aid health care management decision making.
+
+Includes studies about the decision making process in diagnosis and prognosis, as opposed to evaluating the diagnostic or prognostic techniques (which would fall into 4 Detection and Diagnosis)."
+7.4,"Resources and infrastructure (disease management)
+Main inclusion criteria
+development and/or distribution of resources and equipment for use by the community including informatics systems
+infrastructure support for trials, networks, consortia and centres"
+8.1,"Organisation and delivery of services
+Main inclusion criteria
+Examining the organisation and provision of health and social care services and evaluating factors affecting the quality of care, including:
+
+workforce and career issues
+organisation and management of services
+access to health and social care and geographical variations in outcomes
+effectiveness of different care settings and models of service delivery
+evaluating quality of care including patient safety issues
+evaluation of experiences of service users
+assessment of current and future health care demands
+development and evaluation of interventions to improve services
+ 
+Advice on research activities
+Includes all aspects of the delivery of health care.
+
+Also includes the evaluation of the impact of non-specified or multiple treatments on a particular condition e.g. evaluation of health interventions on the prevalence of cardiovascular disease.
+
+Includes service users’ experiences of health services."
+8.2,"Health and welfare economics
+Main inclusion criteria
+Economic evaluation of health and social care interventions and delivery, including:
+
+cost-benefit analysis of services including economic modelling
+cost effectiveness or economic feasibility of implementing new interventions or technologies within health services
+economic assessment of service productivity and outcomes
+health care costs
+development and evaluation of economic models of health care
+ 
+Advice on research activities
+Includes research with a main aim of investigating health and welfare economics.
+
+Excludes clinical trials and health technology assessments with a mandatory economic evaluation component. In these cases, code for the therapeutic investigation only."
+8.3,"Policy, ethics and research governance
+Main inclusion criteria
+evaluation of local, regional and national healthcare policy
+impact of legislation
+synthesis and evaluation of evidence to inform policy
+dissemination and implementation of research evidence
+research ethics including use of personal data and biological material, consent and confidentiality
+research governance and regulation processes including interpretation of guidelines
+issues surrounding research subjects and donor recruitment
+
+Advice on research activities
+Includes research relating to ethics and research governance and health care policy research related to provision of health services."
+8.4,"Research design and methodologies (health services)
+Main inclusion criteria
+Development of research designs and novel methodologies for health care including treatment, management and health services research, including:
+
+analytical innovation, methodological research, statistical methods and modelling
+development of research measurements including outcome measures
+development of methods of research assessment and evaluation
+development and evaluation of research designs and methodologies
+ 
+
+Advice on research activities
+Includes development of novel methodologies and research designs and measurements in treatment, management and health services research.
+
+Excludes research applying bioinformatics or using pre-existing methods.
+
+Excludes development of epidemiological methods and measures which should be coded as 2.5 Aetiology design.
+
+Excludes development of models to aid health care management decision making which should be coded as 7.3 Management and decision making.
+
+Excludes economic models which should be coded as 8.2 Health and welfare economics."
+8.5,"Resources and infrastructure (health services)
+Main inclusion criteria
+development and distribution of resources for use by the community including informatics systems
+infrastructure support for networks, trials, consortia and centres"
