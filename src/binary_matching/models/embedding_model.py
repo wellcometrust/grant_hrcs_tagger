@@ -286,7 +286,7 @@ class EmbeddingModel:
         sentence_embeddings = []
         for i in tqdm(range(0, len(input_data), batch_size)):
             tokens = self.tokenizer(
-                input_data[i : i + batch_size],
+                input_data[i: i + batch_size],
                 padding=True,
                 truncation=True,
                 return_tensors="pt",
