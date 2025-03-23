@@ -11,6 +11,21 @@ warnings.simplefilter(action="ignore", category=UserWarning)
 transformers.logging.set_verbosity_error()
 
 
+class BertCLSPooler(torch.nn.Module):
+    def __init__(self, config):
+        super(BertCLSPooler, self).__init__()
+        self.dense = torch.nn.Linear(config.hidden_size, config.hidden_size)
+        self.activation = torch.nn.Tanh()
+
+    def forward(self, hidden_states):
+        # Pool by taking the hidden state of the first [CLS] token.
+        first_token_tensor = hidden_states[:, 0]
+        pooled_output = self.dense(first_token_tensor)
+        pooled_output = self.activation(pooled_output)
+
+        return pooled_output
+
+
 class EmbeddingModel:
     """Model and methods for generating sentence embeddings.
 
@@ -123,6 +138,7 @@ class EmbeddingModel:
         ) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
         return pooled_embeddings
+
 
     def generate_embeddings(self, batch_chunk, model, cuda_device_id):
         """Run inference and generate sentence embeddings.

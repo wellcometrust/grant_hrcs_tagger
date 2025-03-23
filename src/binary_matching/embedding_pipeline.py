@@ -26,7 +26,9 @@ def process_criteria(
         parallelise=False
     )
 
-    df['embeddings'] = embedding_model.run_inference(df[1].to_list())
+    embeddings = embedding_model.run_inference(df[1].to_list())
+    print(len(embeddings[0]))
+    df['embeddings'] = embeddings
 
     df.to_parquet('data/embeddings/criteria.parquet', index=False)
 
