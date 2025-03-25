@@ -11,19 +11,26 @@ warnings.simplefilter(action="ignore", category=UserWarning)
 transformers.logging.set_verbosity_error()
 
 
-class BertCLSPooler(torch.nn.Module):
-    def __init__(self, config):
-        super(BertCLSPooler, self).__init__()
-        self.dense = torch.nn.Linear(config.hidden_size, config.hidden_size)
-        self.activation = torch.nn.Tanh()
+def mean_pooling(token_embeddings, attention_mask):
+    """Performs mean pooling on token embedding sequence.
 
-    def forward(self, hidden_states):
-        # Pool by taking the hidden state of the first [CLS] token.
-        first_token_tensor = hidden_states[:, 0]
-        pooled_output = self.dense(first_token_tensor)
-        pooled_output = self.activation(pooled_output)
+    Args:
+        token_embeddings: Token embeddings.
+        attention_mask: Attention masking.
 
-        return pooled_output
+    Returns:
+        Mean pooled sentence embeddings.
+
+    """
+    input_mask_expanded = (
+        attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    )
+
+    pooled_embeddings = torch.sum(
+        token_embeddings * input_mask_expanded, 1
+    ) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+    return pooled_embeddings
 
 
 class EmbeddingModel:
@@ -117,29 +124,6 @@ class EmbeddingModel:
 
         return gpu_count
 
-    @staticmethod
-    def mean_pooling(token_embeddings, attention_mask):
-        """Performs mean pooling on token embedding sequence.
-
-        Args:
-            token_embeddings: Token embeddings.
-            attenetion_mask: Attention masking.
-
-        Returns:
-            Mean pooled sentence embeddings.
-
-        """
-        input_mask_expanded = (
-            attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        )
-
-        pooled_embeddings = torch.sum(
-            token_embeddings * input_mask_expanded, 1
-        ) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-        return pooled_embeddings
-
-
     def generate_embeddings(self, batch_chunk, model, cuda_device_id):
         """Run inference and generate sentence embeddings.
 
@@ -163,7 +147,7 @@ class EmbeddingModel:
         with torch.no_grad():
             embeddings = model(**inputs)[0]
 
-        pooled_embeddings = self.mean_pooling(embeddings, inputs["attention_mask"])
+        pooled_embeddings = mean_pooling(embeddings, inputs["attention_mask"])
 
         pooled_embeddings = F.normalize(pooled_embeddings, p=2, dim=1)
         pooled_embeddings = pooled_embeddings.cpu().detach().tolist()

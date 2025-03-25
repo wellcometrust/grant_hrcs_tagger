@@ -6,6 +6,9 @@ import torch
 from torch import nn
 
 
+torch.manual_seed(10)
+
+
 def init_device():
     """ Initialize device to use for training.
 
@@ -23,37 +26,31 @@ def init_device():
 class ConvNet1D(nn.Module):
     def __init__(self, n_filters=64):
         super().__init__()
-        self.conv1 = nn.Conv1d(1, n_filters, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv1d(1, n_filters, kernel_size=5, stride=1, padding=1)
         self.act1 = nn.ReLU()
         self.pool1 = nn.MaxPool1d(kernel_size=2, stride=2)
 
         self.flatten = nn.Flatten()
 
-        self.mlp1 = nn.Linear(n_filters * 384, 512)
+        self.mlp1 = nn.Linear(24512, 1000)
         self.act2 = nn.ReLU()
-        self.mlp2 = nn.Linear(512, 512)
-        self.act3 = nn.ReLU()
-        self.mlp3 = nn.Linear(512, 512)
-        self.act4 = nn.ReLU()
 
         self.dropout = nn.Dropout(0.1)
 
-        self.mlp4 = nn.Linear(512, 48)
+        self.mlp4 = nn.Linear(1000, 48)
         self.act5 = nn.Sigmoid()
 
     def forward(self, x):
         # Feature extraction ConvNet
         x = self.act1(self.conv1(x))
         x = self.pool1(x)
-
         x = self.flatten(x)
 
         # Classification MLP
         x = self.act2(self.mlp1(x))
-        x = self.act3(self.mlp2(x))
-        # x = self.act4(self.mlp3(x))
-
         x = self.dropout(x)
+
+        # Sigmoid activation for multilabel classification
         x = self.act5(self.mlp4(x))
 
         return x
@@ -103,7 +100,7 @@ device = init_device()
 model.to(device)
 
 print('Training model:')
-for epoch in track(range(50)):
+for epoch in track(range(40)):
     for X_batch, y_batch in train_loader:
         X_batch = X_batch.to(device)
         y_batch = y_batch.to(device)
