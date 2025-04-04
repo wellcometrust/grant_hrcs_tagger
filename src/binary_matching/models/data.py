@@ -10,7 +10,7 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, file_path, criteria):
         df = pd.read_parquet(file_path)
         self.corpus = df['text'].tolist()
-        self.classes = df.iloc[:, 0].to_list()
+        self.classes = df['1.1'].to_list()
         criteria_df = pd.read_csv(criteria, header=None)
         self.criteria = criteria_df.iloc[:, 1].to_list()
 

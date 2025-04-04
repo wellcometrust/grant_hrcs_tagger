@@ -70,13 +70,17 @@ def evaluate(model, test_loader, rank):
         y_true += y_batch.tolist()
         y_predicted += y_hat.tolist()
 
-    f1_macro = metrics.f1_score(y_true, y_predicted, average='macro')
+    f1 = metrics.f1_score(y_true, y_predicted)
+    precision = metrics.precision_score(y_true, y_predicted)
+    recall = metrics.recall_score(y_true, y_predicted)
     accuracy = metrics.accuracy_score(y_true, y_predicted)
 
-    f1_macro = torch.tensor(f1_macro).to(rank)
+    f1 = torch.tensor(f1).to(rank)
+    precision = torch.tensor(precision).to(rank)
+    recall = torch.tensor(recall).to(rank)
     accuracy = torch.tensor(accuracy).to(rank)
 
-    return f1_macro, accuracy
+    return f1, precision, recall, accuracy
 
 
 def worker(
@@ -97,9 +101,7 @@ def worker(
 
     loss_fn = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-
-    if world_size:
-        train_loader = get_train_dataloader(batch_size, distributed=world_size)
+    train_loader = get_train_dataloader(batch_size, distributed=world_size)
 
     n_steps = len(train_loader)
 
@@ -116,24 +118,29 @@ def worker(
 
         loss = train(model, train_loader, rank, optimizer, loss_fn)
 
-        torch.distributed.barrier()
-        torch.distributed.all_reduce(loss, op=torch.distributed.ReduceOp.SUM)
+        if world_size:
+            torch.distributed.barrier()
+            torch.distributed.all_reduce(loss, op=torch.distributed.ReduceOp.AVG)
 
         if rank == 0:
             print(f'Loss: {loss}')
 
+    test_loader = get_test_dataloader(batch_size, distributed=world_size)
+
+    f1, precision, recall, accuracy = evaluate(model, test_loader, rank)
+
     if world_size:
-        test_loader = get_test_dataloader(batch_size, distributed=world_size)
-
-    f1_macro, accuracy = evaluate(model, test_loader, rank)
-
-    torch.distributed.barrier()
-    torch.distributed.all_reduce(f1_macro, op=torch.distributed.ReduceOp.AVG)
-    torch.distributed.all_reduce(accuracy, op=torch.distributed.ReduceOp.AVG)
+        torch.distributed.barrier()
+        torch.distributed.all_reduce(f1, op=torch.distributed.ReduceOp.AVG)
+        torch.distributed.all_reduce(precision, op=torch.distributed.ReduceOp.AVG)
+        torch.distributed.all_reduce(recall, op=torch.distributed.ReduceOp.AVG)
+        torch.distributed.all_reduce(accuracy, op=torch.distributed.ReduceOp.AVG)
 
     if rank == 0:
+        print(f'F1: {f1}')
+        print(f'Precision: {precision}')
+        print(f'Recall: {recall}')
         print(f'Accuracy: {accuracy}')
-        print(f'F1 Macro: {f1_macro}')
 
     if world_size:
         destroy_process_group()
@@ -162,4 +169,4 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
 
 if __name__ == '__main__':
     model = BinaryMatchingMLP()
-    main(model, n_epochs=10)
+    main(model, n_epochs=5, multi_gpu=True)

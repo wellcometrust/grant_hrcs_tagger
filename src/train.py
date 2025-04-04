@@ -339,7 +339,7 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         with open(args.label_names_path, 'r') as f:
             label_names = {k: v for line in f for k, v in json.loads(line).items()}
         class_labels = [f'{label}-{label_names[label]}' for label in class_labels]
-    
+
     f1 = metrics['eval_f1']
     precision = metrics['eval_precision']
     recall = metrics['eval_recall']
