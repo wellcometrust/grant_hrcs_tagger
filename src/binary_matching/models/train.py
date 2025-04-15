@@ -30,13 +30,33 @@ def get_device():
 
 
 def setup_distributed_training(rank, world_size):
+    """Set up process group.
+
+    Args:
+        rank(int): GPU device ID.
+        world_size(int): Total number of GPUs.
+
+    """
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ['MASTER_PORT'] = '11111'
 
     init_process_group('nccl', rank=rank, world_size=world_size)
 
 
 def train(model, train_loader, rank, optimizer, loss_fn):
+    """ Performs a training epoch.
+
+    Args:
+        model: Transformers AutoModel class.
+        train_loader: PyTorch DistributedSampler module.
+        rank(int): GPU device id.
+        optimizer: Optimiser module for training.
+        loss_fn: Loss function module for training.
+
+    Returns:
+        int: Loss value.
+
+    """
     for batch in train_loader:
         X_batch = batch['input_ids'].to(rank)
         attention_mask = batch['attention_mask'].to(rank)
@@ -54,6 +74,17 @@ def train(model, train_loader, rank, optimizer, loss_fn):
 
 
 def evaluate(model, test_loader, rank):
+    """ Evaluate model agaisnt hold out test dataset.
+
+    Args:
+        model: Fine-tuned Transformers AutoModel class.
+        test_loader: PyTorch DistributedSampler module.
+        rank(int): GPU device id.
+
+    Returns:
+        tuple: Model performance metrics.
+
+    """
     model.eval()
     y_true = []
     y_predicted = []
@@ -91,6 +122,17 @@ def worker(
     batch_size,
     learning_rate=0.00001
 ):
+    """ Distributed function for co-ordinating experiments on a GPU worker.
+
+    Args:
+        rank(int): GPU device ID.
+        world_size(int): Total number of GPUs.
+        model: Fine-tuned Transformers AutoModel class.
+        n_epochs(int): Number of training epochs.
+        batch_size(int): Batch chunk size.
+        learning_rate(float): Learning weight for training.
+    
+    """
     if world_size:
         setup_distributed_training(rank, world_size)
 
@@ -147,6 +189,15 @@ def worker(
 
 
 def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
+    """ Co-ordinates training and evaluation across multiple GPUs.
+
+    Args:
+        model: Fine-tuned Transformers AutoModel class.
+        multi_gpu(bool): Use multiple GPUs for training.
+        n_epochs(int): Number of training epochs.
+        batch_size(int): Batch chunk size.
+
+    """
     print('Training model:')
 
     torch.cuda.empty_cache()
@@ -169,4 +220,4 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
 
 if __name__ == '__main__':
     model = BinaryMatchingMLP()
-    main(model, n_epochs=5, multi_gpu=True)
+    main(model, n_epochs=2, multi_gpu=True)

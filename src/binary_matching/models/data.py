@@ -7,12 +7,11 @@ from transformers import AutoTokenizer
 class Dataset(torch.utils.data.Dataset):
     """ Handles custom tokenisation and labels for training and evaluation.
     """
-    def __init__(self, file_path, criteria):
+    def __init__(self, file_path):
         df = pd.read_parquet(file_path)
         self.corpus = df['text'].tolist()
-        self.classes = df['1.1'].to_list()
-        criteria_df = pd.read_csv(criteria, header=None)
-        self.criteria = criteria_df.iloc[:, 1].to_list()
+        self.classes = df['value'].to_list()
+        self.criteria = df['criteria'].to_list()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             'distilbert/distilbert-base-uncased'
@@ -22,10 +21,9 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.corpus)
 
     def __getitem__(self, idx):
-        criteria = self.criteria[0]
         tokens = self.tokenizer.encode_plus(
             self.corpus[idx],
-            text_pair=criteria,
+            text_pair=self.criteria[idx],
             add_special_tokens=True,
             truncation=True,
             max_length=512,
@@ -44,10 +42,7 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_train_dataloader(batch_size=32, distributed=False, shuffle=True):
     """Get the training dataloader."""
-    train_dataset = Dataset(
-        'data/preprocessed/ra/train.parquet',
-        'data/criteria/criteria.csv'
-    )
+    train_dataset = Dataset('data/preprocessed/ra/train_match.parquet')
 
     if distributed:
         shuffle = False
@@ -67,10 +62,7 @@ def get_train_dataloader(batch_size=32, distributed=False, shuffle=True):
 
 def get_test_dataloader(batch_size=32, distributed=False):
     """Get the test dataloader."""
-    test_dataset = Dataset(
-        'data/preprocessed/ra/test.parquet',
-        'data/criteria/criteria.csv'
-    )
+    test_dataset = Dataset('data/preprocessed/ra/test_match.parquet')
 
     if distributed:
         sampler = DistributedSampler(test_dataset, shuffle=True)
