@@ -1,6 +1,6 @@
 import os
 
-from sklearn import metrics
+import numpy as np
 import torch
 from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from data import get_train_dataloader, get_test_dataloader
 from model import BinaryMatchingMLP
-
+import metrics
 
 torch.manual_seed(10)
 
@@ -88,30 +88,27 @@ def evaluate(model, test_loader, rank):
     model.eval()
     y_true = []
     y_predicted = []
+    class_labels = []
     with torch.no_grad():
-        for batch in tqdm(test_loader, disable=not rank == 0, colour='blue'):
+        for batch in tqdm(test_loader, disable=rank != 0, colour='blue'):
             X_batch = batch['input_ids'].to(rank)
             attention_mask = batch['attention_mask'].to(rank)
             y_batch = batch['labels'].to(rank)
 
+            class_labels += batch['classes']
+            y_true.append(y_batch)
+
             y_hat = model(X_batch, attention_mask).tolist()
-            y_hat = torch.tensor(y_hat)
+            y_hat = torch.tensor(y_hat, device=rank)
             y_hat = torch.where(y_hat > 0.5, 1, 0)
+            y_predicted.append(y_hat.squeeze())
 
-        y_true += y_batch.tolist()
-        y_predicted += y_hat.tolist()
+    y_true = torch.cat(y_true, dim=0)
+    y_predicted = torch.cat(y_predicted, dim=0)
+    class_labels = torch.tensor(class_labels, device=rank).squeeze()
+    eval_data = torch.stack([y_true, y_predicted, class_labels])
 
-    f1 = metrics.f1_score(y_true, y_predicted)
-    precision = metrics.precision_score(y_true, y_predicted)
-    recall = metrics.recall_score(y_true, y_predicted)
-    accuracy = metrics.accuracy_score(y_true, y_predicted)
-
-    f1 = torch.tensor(f1).to(rank)
-    precision = torch.tensor(precision).to(rank)
-    recall = torch.tensor(recall).to(rank)
-    accuracy = torch.tensor(accuracy).to(rank)
-
-    return f1, precision, recall, accuracy
+    return torch.transpose(eval_data, 0, 1)
 
 
 def worker(
@@ -120,6 +117,7 @@ def worker(
     model,
     n_epochs,
     batch_size,
+    queue,
     learning_rate=0.00001
 ):
     """ Distributed function for co-ordinating experiments on a GPU worker.
@@ -154,7 +152,7 @@ def worker(
             train_loader,
             desc=f'Epoch {epoch + 1} of {n_epochs}',
             total=n_steps,
-            disable=not rank == 0,
+            disable=rank != 0,
             colour='green'
         )
 
@@ -162,27 +160,21 @@ def worker(
 
         if world_size:
             torch.distributed.barrier()
-            torch.distributed.all_reduce(loss, op=torch.distributed.ReduceOp.AVG)
+            torch.distributed.reduce(
+                loss,
+                dst=0,
+                op=torch.distributed.ReduceOp.AVG,
+            )
 
         if rank == 0:
             print(f'Loss: {loss}')
 
     test_loader = get_test_dataloader(batch_size, distributed=world_size)
+    predictions = evaluate(model, test_loader, rank)
 
-    f1, precision, recall, accuracy = evaluate(model, test_loader, rank)
-
-    if world_size:
-        torch.distributed.barrier()
-        torch.distributed.all_reduce(f1, op=torch.distributed.ReduceOp.AVG)
-        torch.distributed.all_reduce(precision, op=torch.distributed.ReduceOp.AVG)
-        torch.distributed.all_reduce(recall, op=torch.distributed.ReduceOp.AVG)
-        torch.distributed.all_reduce(accuracy, op=torch.distributed.ReduceOp.AVG)
-
-    if rank == 0:
-        print(f'F1: {f1}')
-        print(f'Precision: {precision}')
-        print(f'Recall: {recall}')
-        print(f'Accuracy: {accuracy}')
+    predictions = predictions.detach().cpu()
+    predictions = predictions.numpy()
+    queue.put(predictions)
 
     if world_size:
         destroy_process_group()
@@ -193,7 +185,7 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
 
     Args:
         model: Fine-tuned Transformers AutoModel class.
-        multi_gpu(bool): Use multiple GPUs for training.
+        multi_gpu(bool): Use multiple GPUs for training if available.
         n_epochs(int): Number of training epochs.
         batch_size(int): Batch chunk size.
 
@@ -204,15 +196,27 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
     device = get_device()
 
     world_size = torch.cuda.device_count()
-
     if world_size > 1 and multi_gpu and device == 'cuda':
         print(f'Using CUDA to train on {world_size} GPUs')
+        mp.set_start_method("spawn")
+        queue = mp.Queue()
+
         mp.spawn(
             worker,
-            args=(world_size, model, n_epochs, batch_size),
+            args=(world_size, model, n_epochs, batch_size, queue),
             nprocs=world_size,
-            join=True
+            join=False
         )
+
+        eval_data = []
+        while True:
+            eval_data.append(queue.get())
+            if len(eval_data) == world_size:
+                break
+    
+        eval_data = np.concatenate(eval_data)
+        metrics.calculate_metrics(eval_data)
+
     else:
         print(f'Using {device.upper()} to train on a single GPU')
         worker(0, None, model, n_epochs, batch_size)

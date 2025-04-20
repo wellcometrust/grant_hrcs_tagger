@@ -10,7 +10,8 @@ class Dataset(torch.utils.data.Dataset):
     def __init__(self, file_path):
         df = pd.read_parquet(file_path)
         self.corpus = df['text'].tolist()
-        self.classes = df['value'].to_list()
+        self.labels = df['value'].to_list()
+        self.classes = df['variable'].to_list()
         self.criteria = df['criteria'].to_list()
 
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -34,7 +35,8 @@ class Dataset(torch.utils.data.Dataset):
         data_sample = {
             'input_ids': tokens['input_ids'].squeeze(0),
             'attention_mask': tokens['attention_mask'].squeeze(0),
-            'labels': torch.tensor(self.classes[idx], dtype=torch.float32)
+            'labels': torch.tensor(self.labels[idx], dtype=torch.float32),
+            'classes': self.classes[idx]
         }
 
         return data_sample
@@ -45,7 +47,7 @@ def get_train_dataloader(batch_size=32, distributed=False, shuffle=True):
     train_dataset = Dataset('data/preprocessed/ra/train_match.parquet')
 
     if distributed:
-        shuffle = False
+        shuffle = False # Must be false if DistributedSampler is used.
         sampler = DistributedSampler(train_dataset, shuffle=True)
     else:
         sampler = None
@@ -65,7 +67,7 @@ def get_test_dataloader(batch_size=32, distributed=False):
     test_dataset = Dataset('data/preprocessed/ra/test_match.parquet')
 
     if distributed:
-        sampler = DistributedSampler(test_dataset, shuffle=True)
+        sampler = DistributedSampler(test_dataset)
     else:
         sampler = None
 
