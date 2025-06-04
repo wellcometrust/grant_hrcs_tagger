@@ -12,7 +12,7 @@ from transformers import AutoTokenizer, pipeline
 from dotenv import load_dotenv
 load_dotenv()
 
-MODEL_REGISTRY = "wellcome-ml-team/model-registry/HRCSTagger"
+MODEL_REGISTRY = os.environ.get("MODEL_REGISTRY")
 SAGEMAKER_BUCKET = os.environ.get("SAGEMAKER_BUCKET")
 
 def link_to_registry(model_name):

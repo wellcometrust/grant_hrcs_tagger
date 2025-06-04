@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import wandb
-import yaml
 
 import numpy as np
 import pandas as pd
@@ -20,17 +19,7 @@ from transformers import (
     ModernBertForSequenceClassification
 )
 
-
-def load_yaml_config(config_path: str):
-    """ Load yaml configuration file.
-
-    Returns:
-        dict: configuration dictionary
-    """
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
-
+from utils import load_yaml_config
 
 def init_device():
     """ Initialize device to use for training.
