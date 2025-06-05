@@ -81,7 +81,7 @@ def deploy_model(sm_model, **endpoint_kwargs):
     )
     end = time.perf_counter()
     deploy_time = end - start
-    
+
     print(f"Endpoint creation time: {deploy_time:.2f} seconds")
     wandb.log({"endpoint_name": endpoint_name, "deploy_time_sec": deploy_time})
 
