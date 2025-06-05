@@ -133,6 +133,7 @@ def tag_artifact():
     artifact.metadata["deployment_config"] = config
     artifact.aliases.remove("staged")
     artifact.aliases.append("prod")
+    artifact.save()
 
 
 def delete_endpoint(predictor):
