@@ -17,6 +17,7 @@ dependencies = [
     "pyarrow>=19.0.1",
     "python-dotenv>=1.1.0",
     "rich>=13.9.4",
+    "ruff>=0.11.12",
     "sagemaker==2.244.2",
     "scikit-learn>=1.6.1",
     "scikit-multilearn>=0.2.0",
@@ -24,3 +25,28 @@ dependencies = [
     "transformers[torch]>=4.49.0",
     "wandb>=0.19.7",
 ]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pydocstyle
+    "D",
+]
+ignore = ["D100", "D104", "E501"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

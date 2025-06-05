@@ -1,26 +1,25 @@
 import os
-import yaml
-import json
+
 import click
 import numpy as np
 import pandas as pd
+import yaml
 from sklearn.preprocessing import MultiLabelBinarizer
 from skmultilearn.model_selection import iterative_train_test_split
 
 
 def load_yaml_config(yaml_path: str):
-    """ Load yaml configuration file.
+    """Load yaml configuration file.
 
     Returns:
         dict: configuration dictionary
     """
-    with open(yaml_path, 'r') as f:
+    with open(yaml_path) as f:
         return yaml.safe_load(f)
 
 
 def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
-    """
-    Split data into training and test sets.
+    """Split data into training and test sets.
 
     Args:
         df (pd.DataFrame): Dataframe to split.
@@ -37,27 +36,24 @@ def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
 
     mlb = MultiLabelBinarizer()
     y = mlb.fit_transform(df[category])
-    X = np.array([df['AllText'].to_numpy()]).T
+    X = np.array([df["AllText"].to_numpy()]).T
 
     np.random.seed(5)
     X_train, y_train, X_test, y_test = iterative_train_test_split(
-        X,
-        y,
-        test_size=test_size
+        X, y, test_size=test_size
     )
 
     train = pd.DataFrame(y_train, columns=mlb.classes_)
     test = pd.DataFrame(y_test, columns=mlb.classes_)
 
-    train['text'] = X_train.ravel()
-    test['text'] = X_test.ravel()
+    train["text"] = X_train.ravel()
+    test["text"] = X_test.ravel()
 
     return train, test
 
 
 def save_train_test_data(train, test, output_dir):
-    """
-    Save training and test data to disk.
+    """Save training and test data to disk.
 
     Args:
         train (pd.DataFrame): Training data.
@@ -66,14 +62,14 @@ def save_train_test_data(train, test, output_dir):
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    train.to_parquet(output_dir + '/train.parquet')
-    test.to_parquet(output_dir + '/test.parquet')
+    train.to_parquet(output_dir + "/train.parquet")
+    test.to_parquet(output_dir + "/test.parquet")
 
 
 @click.command()
-@click.argument('config')
-@click.argument('clean_data')
-@click.argument('output_dir')
+@click.argument("config")
+@click.argument("clean_data")
+@click.argument("output_dir")
 def processing_pipeline(config, clean_data, output_dir):
     """Process data into train, test datasets.
 
@@ -84,19 +80,17 @@ def processing_pipeline(config, clean_data, output_dir):
 
     """
     config = load_yaml_config(config)
-    for category in ['RA', 'RA_top', 'HC']:
+    for category in ["RA", "RA_top", "HC"]:
         data = pd.read_parquet(clean_data)
 
-        if not config['preprocess_settings']['cased']:
-            data['AllText'] = data['AllText'].str.lower()
+        if not config["preprocess_settings"]["cased"]:
+            data["AllText"] = data["AllText"].str.lower()
 
         train, test = split_data_frame(
-            data,
-            category,
-            config['preprocess_settings']['test_train_split']
+            data, category, config["preprocess_settings"]["test_train_split"]
         )
 
-        output_sub_dir = f'{output_dir}/{category.lower()}'
+        output_sub_dir = f"{output_dir}/{category.lower()}"
         save_train_test_data(train, test, output_sub_dir)
 
 

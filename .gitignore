@@ -175,3 +175,6 @@ data/
 
 #notebooks
 .DS_Store
+
+# wandb
+wandb/

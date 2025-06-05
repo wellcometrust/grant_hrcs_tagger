@@ -1,9 +1,9 @@
 import argparse
 import os
 import time
-import wandb
-
 from datetime import datetime
+
+import wandb
 from dotenv import load_dotenv
 from sagemaker.huggingface.model import HuggingFaceModel
 
@@ -19,7 +19,7 @@ SAGEMAKER_PROJECT_ID = os.environ.get("SAGEMAKER_PROJECT_ID")
 
 def get_staged_model_path():
     """Retrieve the path to the staged model from the W&B artifact registry.
-    
+
     Returns:
         str: Path to the staged model.tar.gz on S3.
     """
@@ -27,19 +27,19 @@ def get_staged_model_path():
 
     try:
         model = api.artifact(type="model", name=f"{MODEL_REGISTRY}:staged")
-    except:
-        raise ValueError(f"Model artifact {MODEL_REGISTRY}:staged not found.")
-    
+    except Exception as e:
+        raise ValueError(f"Model artifact {MODEL_REGISTRY}:staged not found.") from e
+
     staged_model_path = model.metadata.get("s3_path")
     if not staged_model_path:
         raise ValueError("Path to staged model not found.")
-    
+
     return staged_model_path
 
 
 def create_sagemaker_model(model_path, **model_kwargs):
     """Create a SageMaker model from the specified model path.
-    
+
     Args:
         model_path (str): Path to the model tarball on S3.
         **model_kwargs: Additional keyword arguments for the HuggingFaceModel.
@@ -58,11 +58,11 @@ def create_sagemaker_model(model_path, **model_kwargs):
 
 def deploy_model(sm_model, **endpoint_kwargs):
     """Deploy the SageMaker model to an endpoint.
-    
+
     Args:
         sm_model (HuggingFaceModel): The SageMaker model to deploy.
         **endpoint_kwargs: Additional keyword arguments for the Sagemaker endpoint.
-    
+
     Returns:
         Predictor: A SageMaker Predictor instance for the deployed endpoint.
     """
@@ -85,23 +85,33 @@ def deploy_model(sm_model, **endpoint_kwargs):
 
 def test_endpoint(predictor):
     """Test the SageMaker endpoint with a sample input. Inference time and result are logged to W&B.
-    
+
     Args:
         predictor (Predictor): The SageMaker Predictor instance for the endpoint.
     """
     test_data = {
-        "inputs": "Alzheimer's disease poses a major challenge in healthcare, impacting millions globally. "
-                        "Despite extensive research, the genetic causes are not fully understood. This project aims to "
-                        "uncover the genetic factors of AD through innovative genomic analysis and integrative techniques. "
-                        "Using advanced sequencing and computational methods, we will study genetic variants, gene interactions, "
-                        "and epigenetic changes linked to AD, leveraging large-scale genomic data from diverse populations to ensure "
-                        "broader relevance. Advanced statistical models will help identify potential biomarkers for predicting disease "
-                        "onset and progression, possibly leading to new therapeutic targets and personalised medicine approaches. "
-                        "Our collaboration with experts in genomics, neurology, and bioinformatics strives to foster innovation and "
-                        "accelerate Alzheimer's research, aiming to enhance understanding and treatment options concerning the genetic "
-                        "influences on Alzheimer's disease."
-        }
-    
+        "inputs": """
+        Advancements in biomedical research hold the promise of profoundly improving health outcomes through 
+        innovative approaches to diagnosis, treatment, and prevention of diseases. This grant proposes a comprehensive 
+        study aimed at understanding the molecular underpinnings of AD to develop targeted therapies that 
+        enhance efficacy while minimising side effects. Despite significant strides in medical science, AD
+        remains a leading cause of morbidity and mortality worldwide, necessitating focused efforts to decipher its complex 
+        biological mechanisms. The proposed research will employ cutting-edge techniques such as CRISPR-Cas9 gene editing, 
+        high-throughput sequencing, and advanced bioinformatics analysis to map genetic and molecular pathways 
+        involved in disease progression. By integrating data from genomics, proteomics, and metabolomics, we aim to identify 
+        novel biomarkers for early detection and delineate key targets for therapeutic intervention.
+        Our multidisciplinary team is uniquely positioned to tackle these challenges, combining expertise in molecular biology, 
+        clinical medicine, and computational science. The project will not only elucidate the pathophysiology 
+        of AD but will also foster translational research efforts to bridge laboratory findings with clinical applications. 
+        Collaborations with leading research institutes and industry partners will ensure rigorous validation and 
+        potential scalability of our findings. Ultimately, this grant seeks to contribute to personalised medicine approaches, 
+        offering patients tailored treatments based on their genetic profiles, thus improving clinical outcomes and 
+        quality of life. Furthermore, by advancing our understanding of AD, we aim to set a foundation for future research 
+        initiatives exploring similar complex disorders. Through this endeavour, we aspire to push the boundaries of 
+        medical research, paving the way for innovative solutions that address one of today’s most pressing health challenges.
+        """
+    }
+
     start = time.perf_counter()
     result = predictor.predict(test_data)
     end = time.perf_counter()
@@ -122,7 +132,7 @@ def tag_artifact():
 
 def delete_endpoint(predictor):
     """Delete the SageMaker endpoint.
-    
+
     Args:
         predictor (Predictor): The SageMaker Predictor instance for the endpoint.
     """
@@ -132,7 +142,7 @@ def delete_endpoint(predictor):
 
 def deploy(config):
     """Deploy the HRCSTagger model to SageMaker using the provided configuration.
-    
+
     Args:
         config (dict): Configuration dictionary containing model and endpoint parameters.
     """
@@ -141,29 +151,39 @@ def deploy(config):
         wandb.log(config)
 
         print(f"Creating SageMaker model with path: {model_path}")
-        sm_model = create_sagemaker_model(model_path=model_path,
-                                        **config["model_args"])
-        
+        sm_model = create_sagemaker_model(model_path=model_path, **config["model_args"])
+
         print("Deploying model to SageMaker endpoint...")
         predictor = deploy_model(sm_model, **config["endpoint_args"])
-        run.alert(f"HRCSTagger endpoint created successfully: {predictor.endpoint_name}")
-        
+        run.alert(
+            title="HRCSTagger Endpoint",
+            text=f"HRCSTagger endpoint created successfully: {predictor.endpoint_name}",
+        )
+
         test_endpoint(predictor)
-        proceed = input("Do you want to proceed and tag this model for use in production? (Y/N): ").strip().lower()
+        proceed = (
+            input(
+                "Do you want to proceed and tag this model for use in production? (Y/N): "
+            )
+            .strip()
+            .lower()
+        )
         wandb.log({"proceed": proceed})
         if proceed == "y":
             tag_artifact()
 
         delete_endpoint(predictor)
-        run.alert("HRCSTagger endpoint deleted.")
+        run.alert(title="HRCSTagger Endpoint", text="HRCSTagger endpoint deleted.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deploy HRCSTagger model to SageMaker")
-    parser.add_argument("--config", type=str, help="Path to the deployment configuration file")
+    parser.add_argument(
+        "--config", type=str, help="Path to the deployment configuration file"
+    )
 
     args = parser.parse_args()
-    
+
     config = load_yaml_config(args.config)
 
     deploy(config)
