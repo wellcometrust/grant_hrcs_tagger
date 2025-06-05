@@ -69,6 +69,7 @@ def deploy_model(sm_model, **endpoint_kwargs):
     now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     endpoint_name = f"hrcstagger-{now}"
 
+    start = time.perf_counter()
     predictor = sm_model.deploy(
         initial_instance_count=1,
         endpoint_name=endpoint_name,
@@ -78,7 +79,11 @@ def deploy_model(sm_model, **endpoint_kwargs):
         ],
         **endpoint_kwargs,
     )
-    wandb.log({"endpoint_name": endpoint_name})
+    end = time.perf_counter()
+    deploy_time = end - start
+    
+    print(f"Endpoint creation time: {deploy_time:.2f} seconds")
+    wandb.log({"endpoint_name": endpoint_name, "deploy_time_sec": deploy_time})
 
     return predictor
 

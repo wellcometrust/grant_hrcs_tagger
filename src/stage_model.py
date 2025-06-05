@@ -134,7 +134,7 @@ def stage_model(model_name):
                 artifact.save()
                 run.alert(
                     title="Model change",
-                    text="HRCSTagger model staged successfully at {s3_path}.",
+                    text=f"HRCSTagger model staged successfully at {s3_path}.",
                 )
 
 
