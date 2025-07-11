@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import wandb
 from sklearn.metrics import f1_score, precision_score, recall_score
 from transformers import (
     AutoModelForSequenceClassification,
@@ -18,6 +17,7 @@ from transformers import (
     TrainingArguments,
 )
 
+import wandb
 from utils import load_yaml_config
 
 

@@ -6,9 +6,10 @@ from datetime import datetime
 from pathlib import Path
 
 import boto3
-import wandb
 from dotenv import load_dotenv
 from transformers import AutoTokenizer, pipeline
+
+import wandb
 
 load_dotenv()
 

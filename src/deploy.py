@@ -3,10 +3,10 @@ import os
 import time
 from datetime import datetime
 
-import wandb
 from dotenv import load_dotenv
 from sagemaker.huggingface.model import HuggingFaceModel
 
+import wandb
 from utils import load_yaml_config
 
 load_dotenv()
