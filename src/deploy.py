@@ -1,20 +1,20 @@
 import argparse
 import os
+import sys
 import time
 from datetime import datetime
 
 from dotenv import load_dotenv
+from sagemaker import image_uris
 from sagemaker.huggingface.model import HuggingFaceModel
 
+import transformers
+import torch
 import wandb
-from utils import load_yaml_config
 
 load_dotenv()
 
 MODEL_REGISTRY = os.environ.get("MODEL_REGISTRY")
-SAGEMAKER_ROLE_ARN = os.environ.get("SAGEMAKER_ROLE_ARN")
-SAGEMAKER_DOMAIN_ID = os.environ.get("SAGEMAKER_DOMAIN_ID")
-SAGEMAKER_PROJECT_ID = os.environ.get("SAGEMAKER_PROJECT_ID")
 
 
 def get_staged_model_path():
@@ -36,32 +36,56 @@ def get_staged_model_path():
 
     return staged_model_path
 
+def get_sagemaker_image_uri(instance_type):
+    """Get the SageMaker container URI for the specified instance type.
 
-def create_sagemaker_model(model_path, **model_kwargs):
+    Args:
+        instance_type (str): The type of SageMaker instance.
+
+    Returns:
+        str: The container image URI for the specified instance type.
+    """
+    transformers_version = transformers.__version__
+    torch_version = torch.__version__
+    python_version = sys.version.split()[0]
+    
+    image_uri = image_uris.retrieve(
+        framework="huggingface",
+        region="eu-west-1",
+        version=transformers_version,
+        image_scope="inference",
+        base_framework_version=f"pytorch{torch_version}",
+        instance_type=instance_type,
+        py_version=f"py{''.join(python_version.split('.')[:2])}",
+    )
+    
+    return image_uri
+
+
+def create_sagemaker_model(model_path, sagemaker_image_uri):
     """Create a SageMaker model from the specified model path.
 
     Args:
         model_path (str): Path to the model tarball on S3.
-        **model_kwargs: Additional keyword arguments for the HuggingFaceModel.
+        sagemaker_image_uri (str): The SageMaker container image URI.
 
     Returns:
         HuggingFaceModel: A SageMaker HuggingFaceModel instance.
     """
     sm_model = HuggingFaceModel(
         model_data=model_path,
-        role=SAGEMAKER_ROLE_ARN,
-        **model_kwargs,
+        image_uri=sagemaker_image_uri,
     )
 
     return sm_model
 
 
-def deploy_model(sm_model, **endpoint_kwargs):
+def deploy_model(sm_model, instance_type="ml.m5.xlarge"):
     """Deploy the SageMaker model to an endpoint.
 
     Args:
         sm_model (HuggingFaceModel): The SageMaker model to deploy.
-        **endpoint_kwargs: Additional keyword arguments for the Sagemaker endpoint.
+        instance_type (str): The type of SageMaker instance to use for deployment.
 
     Returns:
         Predictor: A SageMaker Predictor instance for the deployed endpoint.
@@ -73,11 +97,7 @@ def deploy_model(sm_model, **endpoint_kwargs):
     predictor = sm_model.deploy(
         initial_instance_count=1,
         endpoint_name=endpoint_name,
-        tags=[
-            {"Key": "AmazonDataZoneProject", "Value": SAGEMAKER_PROJECT_ID},
-            {"Key": "AmazonDataZoneDomain", "Value": SAGEMAKER_DOMAIN_ID},
-        ],
-        **endpoint_kwargs,
+        instance_type=instance_type,
     )
     end = time.perf_counter()
     deploy_time = end - start
@@ -127,10 +147,11 @@ def test_endpoint(predictor):
     wandb.log({"inference_result": result, "inference_time_sec": inference_time})
 
 
-def tag_artifact():
+def tag_artifact(instance_type, sagemaker_image_uri):
     """Tag the staged model artifact for production use in the W&B registry."""
     artifact = wandb.use_artifact(f"{MODEL_REGISTRY}:staged", type="model")
-    artifact.metadata["deployment_config"] = config
+    artifact.metadata["instance_type"] = instance_type
+    artifact.metadata["sagemaker_image_uri"] = sagemaker_image_uri
     artifact.aliases.remove("staged")
     artifact.aliases.append("prod")
     artifact.save()
@@ -146,21 +167,21 @@ def delete_endpoint(predictor):
     print("Endpoint deleted.")
 
 
-def deploy(config):
+def deploy(instance_type="ml.m5.xlarge"):
     """Deploy the HRCSTagger model to SageMaker using the provided configuration.
 
     Args:
-        config (dict): Configuration dictionary containing model and endpoint parameters.
+        instance_type (str): The type of SageMaker instance to use for deployment.
     """
     model_path = get_staged_model_path()
     with wandb.init(project="grant_hrcs_tagger", job_type="staging") as run:
-        wandb.log(config)
 
         print(f"Creating SageMaker model with path: {model_path}")
-        sm_model = create_sagemaker_model(model_path=model_path, **config["model_args"])
+        sagemaker_image_uri = get_sagemaker_image_uri(instance_type)
+        sm_model = create_sagemaker_model(model_path=model_path, sagemaker_image_uri=sagemaker_image_uri)
 
         print("Deploying model to SageMaker endpoint...")
-        predictor = deploy_model(sm_model, **config["endpoint_args"])
+        predictor = deploy_model(sm_model, instance_type=instance_type)
         run.alert(
             title="HRCSTagger Endpoint",
             text=f"HRCSTagger endpoint created successfully: {predictor.endpoint_name}",
@@ -176,7 +197,7 @@ def deploy(config):
         )
         wandb.log({"proceed": proceed})
         if proceed == "y":
-            tag_artifact()
+            tag_artifact(instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri)
 
         delete_endpoint(predictor)
         run.alert(title="HRCSTagger Endpoint", text="HRCSTagger endpoint deleted.")
@@ -185,11 +206,16 @@ def deploy(config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deploy HRCSTagger model to SageMaker")
     parser.add_argument(
-        "--config", type=str, help="Path to the deployment configuration file"
+        "--instance_type", type=str, help="Type of SageMaker instance to use", default="ml.m5.xlarge"
+    )
+    parser.add_argument(
+        "--sagemaker_config", type=str,
+        help="(Optional) path to the SageMaker configuration file. Can be a local file or an S3 URI.",
     )
 
     args = parser.parse_args()
 
-    config = load_yaml_config(args.config)
+    if isinstance(args.sagemaker_config, str):
+        os.environ["SAGEMAKER_USER_CONFIG_OVERRIDE"] = args.sagemaker_config
 
-    deploy(config)
+    deploy(args.instance_type)
