@@ -4,12 +4,12 @@ import sys
 import time
 from datetime import datetime
 
+import torch
+import transformers
 from dotenv import load_dotenv
 from sagemaker import image_uris
 from sagemaker.huggingface.model import HuggingFaceModel
 
-import transformers
-import torch
 import wandb
 
 load_dotenv()
@@ -36,6 +36,7 @@ def get_staged_model_path():
 
     return staged_model_path
 
+
 def get_sagemaker_image_uri(instance_type):
     """Get the SageMaker container URI for the specified instance type.
 
@@ -48,7 +49,7 @@ def get_sagemaker_image_uri(instance_type):
     transformers_version = transformers.__version__
     torch_version = torch.__version__
     python_version = sys.version.split()[0]
-    
+
     image_uri = image_uris.retrieve(
         framework="huggingface",
         region="eu-west-1",
@@ -58,7 +59,7 @@ def get_sagemaker_image_uri(instance_type):
         instance_type=instance_type,
         py_version=f"py{''.join(python_version.split('.')[:2])}",
     )
-    
+
     return image_uri
 
 
@@ -175,10 +176,11 @@ def deploy(instance_type="ml.m5.xlarge"):
     """
     model_path = get_staged_model_path()
     with wandb.init(project="grant_hrcs_tagger", job_type="staging") as run:
-
         print(f"Creating SageMaker model with path: {model_path}")
         sagemaker_image_uri = get_sagemaker_image_uri(instance_type)
-        sm_model = create_sagemaker_model(model_path=model_path, sagemaker_image_uri=sagemaker_image_uri)
+        sm_model = create_sagemaker_model(
+            model_path=model_path, sagemaker_image_uri=sagemaker_image_uri
+        )
 
         print("Deploying model to SageMaker endpoint...")
         predictor = deploy_model(sm_model, instance_type=instance_type)
@@ -197,7 +199,9 @@ def deploy(instance_type="ml.m5.xlarge"):
         )
         wandb.log({"proceed": proceed})
         if proceed == "y":
-            tag_artifact(instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri)
+            tag_artifact(
+                instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri
+            )
 
         delete_endpoint(predictor)
         run.alert(title="HRCSTagger Endpoint", text="HRCSTagger endpoint deleted.")
@@ -206,10 +210,14 @@ def deploy(instance_type="ml.m5.xlarge"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deploy HRCSTagger model to SageMaker")
     parser.add_argument(
-        "--instance_type", type=str, help="Type of SageMaker instance to use", default="ml.m5.xlarge"
+        "--instance_type",
+        type=str,
+        help="Type of SageMaker instance to use",
+        default="ml.m5.xlarge",
     )
     parser.add_argument(
-        "--sagemaker_config", type=str,
+        "--sagemaker_config",
+        type=str,
         help="(Optional) path to the SageMaker configuration file. Can be a local file or an S3 URI.",
     )
 
