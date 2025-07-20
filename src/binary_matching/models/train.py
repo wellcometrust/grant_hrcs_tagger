@@ -174,10 +174,12 @@ def worker(
 
     predictions = predictions.detach().cpu()
     predictions = predictions.numpy()
-    queue.put(predictions)
 
     if world_size:
+        queue.put(predictions)
         destroy_process_group()
+    else:
+        return predictions
 
 
 def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
@@ -193,11 +195,12 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
     print('Training model:')
 
     torch.cuda.empty_cache()
-    device = get_device()
+    device_type = get_device()
+    device_name = torch.cuda.get_device_name()
 
     world_size = torch.cuda.device_count()
-    if world_size > 1 and multi_gpu and device == 'cuda':
-        print(f'Using CUDA to train on {world_size} GPUs')
+    if world_size > 1 and multi_gpu and device_type == 'cuda':
+        print(f'Using CUDA to train on {world_size} {device_name} GPUs')
         mp.set_start_method("spawn")
         queue = mp.Queue()
 
@@ -218,8 +221,9 @@ def main(model, multi_gpu=True, n_epochs=2, batch_size=100):
         metrics.calculate_metrics(eval_data)
 
     else:
-        print(f'Using {device.upper()} to train on a single GPU')
-        worker(0, None, model, n_epochs, batch_size)
+        print(f'Using {device_type.upper()} to train on a single {device_name} GPU')
+        eval_data = worker(0, None, model, n_epochs, batch_size, None)
+        metrics.calculate_metrics(eval_data)
 
 
 if __name__ == '__main__':

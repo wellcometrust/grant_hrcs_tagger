@@ -1,7 +1,7 @@
 import click
 import pathlib
 import pandas as pd
-from models.embedding_model import EmbeddingModel
+from models.other.embedding_model import EmbeddingModel
 
 
 @click.group()
