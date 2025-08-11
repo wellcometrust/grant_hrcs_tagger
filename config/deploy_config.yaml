@@ -1,0 +1,7 @@
+model_args:
+  transformers_version: "4.49.0"
+  pytorch_version: "2.6.0"
+  py_version: "py312"
+
+endpoint_args:
+  instance_type: "ml.m5.xlarge"

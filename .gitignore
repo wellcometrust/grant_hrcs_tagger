@@ -171,4 +171,11 @@ cython_debug/
 .pypirc
 
 # Data Folder for downloaded HRCS and intermediate data files
-data/
+data/*
+!data/label_names/
+
+#notebooks
+.DS_Store
+
+# wandb
+wandb/
