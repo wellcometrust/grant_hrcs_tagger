@@ -1,4 +1,5 @@
 import argparse
+from functools import partial
 import json
 import os
 
@@ -16,9 +17,11 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
-
+from transformers.integrations import WandbCallback
 import wandb
 from utils import load_yaml_config
+
+os.environ["WANDB_LOG_MODEL"] = "end"
 
 
 def init_device():
@@ -84,7 +87,7 @@ class HRCSDataset(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def train(train_data, test_data, model_path, config, class_counts, class_weighting):
+def train(train_data, test_data, model_path, config, class_counts, class_weighting, class_labels, test_counts):
     """Finetune a model from the config for the UKHRA data.
 
     Args:
@@ -164,7 +167,8 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         logging_strategy=config["training_settings"]["logging_strategy"],
     )
 
-    compute_metrics = prepare_compute_metrics(config)
+    compute_metrics_fn = partial(compute_metrics, config=config)
+
     # initialize trainer depending on class weighting option
     if class_weighting:
         total_count = sum(class_counts)
@@ -177,7 +181,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=compute_metrics_fn,
             class_weights=class_weights,
         )
     else:
@@ -187,8 +191,23 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=compute_metrics_fn,
         )
+
+    progress_callback = WandbPredictionProgressCallback(
+        trainer=trainer,
+        tokenizer=tokenizer,
+        val_dataset=test_dataset,
+        num_samples=10,
+        freq=1,
+        config=config,
+        class_labels=class_labels,
+        train_count=class_counts,
+        test_count=test_counts
+    )
+
+    # Add the callback to the trainer
+    trainer.add_callback(progress_callback)
 
     # train and evaluate
     trainer.train()
@@ -201,89 +220,108 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     return metrics
 
 
-def prepare_compute_metrics(config):
-    """Wrapper for compute_metrics so config can be accessed
+def compute_metrics(eval_pred, config):
+    """Compute evaluation metrics to be used in the Trainer.
 
-    Args: config (dict): Configuration dictionary from yaml file.
+    Args:
+        eval_pred (tuple): Tuple containing logits and labels.
+        config (dict): Configuration dictionary from yaml file.
 
     Returns:
-        function: compute_metrics function
+        dict: Evaluation metrics (f1, f1_macro, f1_micro, precision, recall)
+    """
+    logits, labels = eval_pred
+    # apply sigmoid to logits
+    logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
+
+    if config["training_settings"]["output_weighting"]:
+        thresholds = [1] * labels.shape[1]
+        category = config["training_settings"].get("category")
+        if category in {"RA", "top_RA"}:
+            # thresholds tuned for RA/top_RA category
+            thresholds[:4] = [0.2, 0.5, 0.8, 0.95]
+        else:
+            thresholds[:4] = [0.2, 0.6, 0.8, 0.9]
+
+        predictions = np.zeros_like(logits)
+        for i, logit in enumerate(logits):
+            sorted_indices = np.argsort(logit)[::-1]
+            for rank, idx in enumerate(sorted_indices):
+                if rank < len(thresholds) and logit[idx] > thresholds[rank]:
+                    predictions[i, idx] = 1
+    else:
+        predictions = np.where(logits > 0.5, 1, 0)
+
+    f1_macro = f1_score(labels, predictions, average="macro")
+    f1_micro = f1_score(labels, predictions, average="micro")
+    f1 = f1_score(labels, predictions, average=None)
+    precision = precision_score(labels, predictions, average=None)
+    recall = recall_score(labels, predictions, average=None)
+    metrics = {
+        "f1": f1,
+        "f1_macro": f1_macro,
+        "f1_micro": f1_micro,
+        "precision": precision,
+        "recall": recall,
+    }
+    print(metrics)
+    return metrics
+
+
+class WandbPredictionProgressCallback(WandbCallback):
+    """Custom WandbCallback to log model predictions during training.
+
+    This callback logs model predictions and labels to a wandb.Table at each
+    logging step during training. It allows to visualize the
+    model predictions as the training progresses.
+
+    Attributes:
+        trainer (Trainer): The Hugging Face Trainer instance.
+        tokenizer (AutoTokenizer): The tokenizer associated with the model.
+        sample_dataset (Dataset): A subset of the validation dataset
+          for generating predictions.
+        num_samples (int, optional): Number of samples to select from
+          the validation dataset for generating predictions. Defaults to 100.
+        freq (int, optional): Frequency of logging. Defaults to 1.
     """
 
-    def compute_metrics(eval_pred):
-        """Compute evaluation metrics to be used in the Trainer.
+    def __init__(self, trainer, tokenizer, val_dataset, config, class_labels, train_count, test_count, num_samples=100, freq=1):
+        """Initializes the WandbPredictionProgressCallback instance.
 
-        Args: eval_pred (tuple): Tuple containing logits and labels.
-
-        Returns:
-            dict: Evaluation metrics (f1, f1_macro, f1_micro, precision,
-            recall)
+        Args:
+            trainer (Trainer): The Hugging Face Trainer instance.
+            tokenizer (AutoTokenizer): The tokenizer associated
+              with the model.
+            val_dataset (Dataset): The validation dataset.
+            num_samples (int, optional): Number of samples to select from
+              the validation dataset for generating predictions.
+              Defaults to 100.
+            freq (int, optional): Frequency of logging. Defaults to 1.
         """
-        logits, labels = eval_pred
-        # apply sigmoid to logits
-        logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
+        super().__init__()
+        self.trainer = trainer
+        self.tokenizer = tokenizer
+        self.sample_dataset = val_dataset.select(range(num_samples))
+        self.freq = freq
+        self.config = config
+        self.class_labels = class_labels
+        self.train_counts = train_count
+        self.test_counts = test_count
 
-        num_tags_predicted = []
-        if config["training_settings"]["output_weighting"]:
-            thresholds = [1] * labels.shape[1]
-            if (
-                config["training_settings"]["category"] == "RA"
-                or config["training_settings"]["category"] == "top_RA"
-            ):
-                # make a list of increasing thresholds same length as the
-                # number of labels
-                thresholds[0] = 0.2
-                thresholds[1] = 0.5
-                thresholds[2] = 0.8
-                thresholds[3] = 0.95
-            else:
-                thresholds[0] = 0.2
-                thresholds[1] = 0.6
-                thresholds[2] = 0.8
-                thresholds[3] = 0.9
-
-            # Prepare an array to hold your predictions
-            predictions = np.zeros_like(logits)
-
-            # Loop through each sample's logits
-            for i, logit in enumerate(logits):
-                # Get the indices of the logits sorted by value in descending order
-                sorted_indices = np.argsort(logit)[::-1]
-
-                # Assign 1 to the top logits that exceed their respective thresholds
-                for rank, idx in enumerate(sorted_indices):
-                    if logit[idx] > thresholds[rank]:
-                        predictions[i, idx] = 1
-                num_tags_predicted.append(np.sum(predictions[i]))
-        else:
-            predictions = np.where(logits > 0.5, 1, 0)
-            for prediction in predictions:
-                num_tags_predicted.append(np.sum(prediction))
-
-            print(
-                "num_tags_predicted: ",
-                pd.Series(num_tags_predicted).value_counts().sort_index(),
-            )
-            log_data = pd.Series(num_tags_predicted).value_counts()
-            wandb.log({"num_tags_predicted": log_data.sort_index().to_json()})
-
-        # compute actual metrics
-        f1_macro = f1_score(labels, predictions, average="macro")
-        f1_micro = f1_score(labels, predictions, average="micro")
-        f1 = f1_score(labels, predictions, average=None)
-        precision = precision_score(labels, predictions, average=None)
-        recall = recall_score(labels, predictions, average=None)
-        metrics = {
-            "f1": f1,
-            "f1_macro": f1_macro,
-            "f1_micro": f1_micro,
-            "precision": precision,
-            "recall": recall,
-        }
-        print(metrics)
-        return metrics
-
-    return compute_metrics
+    def on_evaluate(self, args, state, control, **kwargs):
+        super().on_evaluate(args, state, control, **kwargs)
+        if state.epoch % self.freq == 0:
+            predictions = self.trainer.predict(self.sample_dataset)
+            metrics = compute_metrics(predictions, self.config)
+            self._wandb.log({"f1_micro": metrics["f1_micro"],
+                             "f1_macro": metrics["f1_macro"]})
+            table = plot_metrics(
+                metrics=metrics, 
+                class_labels=self.class_labels, 
+                train_counts=self.train_counts, 
+                test_counts=self.test_counts
+                )
+            self._wandb.log({"metrics and value_count table": table})
 
 
 def plot_metrics(metrics, class_labels, train_counts, test_counts):
@@ -296,16 +334,6 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         test_counts (list): List of class counts for test dataset.
 
     """
-    # pull in label names
-    with open(args.label_names_path) as f:
-        label_names = {k: v for line in f for k, v in json.loads(line).items()}
-
-    # add in the RA full name for reporting.
-    if "RA" in config["training_settings"]["category"]:
-        with open(args.label_names_path) as f:
-            label_names = {k: v for line in f for k, v in json.loads(line).items()}
-        class_labels = [f"{label}-{label_names[label]}" for label in class_labels]
-
     f1 = metrics["eval_f1"]
     precision = metrics["eval_precision"]
     recall = metrics["eval_recall"]
@@ -317,8 +345,7 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         data=[list(values) for values in data],
         columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
     )
-
-    wandb.log({"metrics and value_count table": table})
+    return table
 
 
 def run_training(args):
@@ -333,6 +360,15 @@ def run_training(args):
     test_data = pd.read_parquet(args.test_path)
 
     class_labels = list(train_data.columns[:-1])
+    with open(args.label_names_path) as f:
+        label_names = {k: v for line in f for k, v in json.loads(line).items()}
+
+    # add in the RA full name for reporting.
+    if "RA" in config["training_settings"]["category"]:
+        with open(args.label_names_path) as f:
+            label_names = {k: v for line in f for k, v in json.loads(line).items()}
+        class_labels = [f"{label}-{label_names[label]}" for label in class_labels]
+    
     train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
     test_counts = np.sum(test_data[test_data.columns[:-1]].to_numpy(), axis=0)
 
@@ -351,9 +387,12 @@ def run_training(args):
         config=config,
         class_counts=train_counts,
         class_weighting=class_weighting,
+        class_labels=class_labels,
+        test_counts=test_counts,
     )
 
-    plot_metrics(metrics, class_labels, train_counts, test_counts)
+    table = plot_metrics(metrics, class_labels, train_counts, test_counts)
+    wandb.log({"metrics and value_count table": table})
 
 
 if __name__ == "__main__":
