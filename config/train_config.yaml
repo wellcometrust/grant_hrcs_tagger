@@ -6,13 +6,14 @@ training_settings:
   category: 'RA'  # choose from "RA", "RA_top" or "HC"
   model: 'answerdotai/ModernBERT-base' # choose from 'answerdotai/ModernBERT-base', 'distilbert-base-uncased' or any other model that works with AutoModelForSequenceClassification
   learning_rate: 0.0001
-  num_train_epochs: 1           
+  num_train_epochs: 15 
   per_device_train_batch_size: 2
   per_device_eval_batch_size: 2
   weight_decay: 0.01                  
   report_to: "wandb"
   logging_strategy: "epoch"
-  save_strategy: "epoch"
+  save_strategy: "no"
+  eval_strategy: "epoch"
   save_total_limit: 1
   class_weighting: False # if True a custom loss function will be used which aims to deal with label imbalance
   output_weighting: False # if True custom thresholds will be set for the logits if False threshold = 0.5 for all

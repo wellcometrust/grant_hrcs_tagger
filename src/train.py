@@ -165,9 +165,16 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         save_total_limit=config["training_settings"]["save_total_limit"],
         output_dir=model_path,
         logging_strategy=config["training_settings"]["logging_strategy"],
+        eval_strategy=config["training_settings"]["eval_strategy"]
     )
 
-    compute_metrics_fn = partial(compute_metrics, config=config)
+    compute_metrics_fn = partial(
+        compute_and_plot_metrics, 
+        config=config,
+        class_labels=class_labels, 
+        train_counts=class_counts, 
+        test_counts=test_counts
+        )
 
     # initialize trainer depending on class weighting option
     if class_weighting:
@@ -194,21 +201,6 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             compute_metrics=compute_metrics_fn,
         )
 
-    progress_callback = WandbPredictionProgressCallback(
-        trainer=trainer,
-        tokenizer=tokenizer,
-        val_dataset=test_dataset,
-        num_samples=10,
-        freq=1,
-        config=config,
-        class_labels=class_labels,
-        train_count=class_counts,
-        test_count=test_counts
-    )
-
-    # Add the callback to the trainer
-    trainer.add_callback(progress_callback)
-
     # train and evaluate
     trainer.train()
     metrics = trainer.evaluate()
@@ -217,6 +209,16 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     tokenizer.save_pretrained(model_path + "/tokenizer")
     trainer.save_model(output_dir=model_path)
 
+
+def compute_and_plot_metrics(eval_pred, config, class_labels, train_counts, test_counts):
+    metrics = compute_metrics(eval_pred=eval_pred, config=config)
+    table = plot_metrics(
+        metrics=metrics, 
+        class_labels=class_labels, 
+        train_counts=train_counts, 
+        test_counts=test_counts
+        )
+    wandb.log({"metrics and value_count table": table})
     return metrics
 
 
@@ -264,65 +266,7 @@ def compute_metrics(eval_pred, config):
         "precision": precision,
         "recall": recall,
     }
-    print(metrics)
     return metrics
-
-
-class WandbPredictionProgressCallback(WandbCallback):
-    """Custom WandbCallback to log model predictions during training.
-
-    This callback logs model predictions and labels to a wandb.Table at each
-    logging step during training. It allows to visualize the
-    model predictions as the training progresses.
-
-    Attributes:
-        trainer (Trainer): The Hugging Face Trainer instance.
-        tokenizer (AutoTokenizer): The tokenizer associated with the model.
-        sample_dataset (Dataset): A subset of the validation dataset
-          for generating predictions.
-        num_samples (int, optional): Number of samples to select from
-          the validation dataset for generating predictions. Defaults to 100.
-        freq (int, optional): Frequency of logging. Defaults to 1.
-    """
-
-    def __init__(self, trainer, tokenizer, val_dataset, config, class_labels, train_count, test_count, num_samples=100, freq=1):
-        """Initializes the WandbPredictionProgressCallback instance.
-
-        Args:
-            trainer (Trainer): The Hugging Face Trainer instance.
-            tokenizer (AutoTokenizer): The tokenizer associated
-              with the model.
-            val_dataset (Dataset): The validation dataset.
-            num_samples (int, optional): Number of samples to select from
-              the validation dataset for generating predictions.
-              Defaults to 100.
-            freq (int, optional): Frequency of logging. Defaults to 1.
-        """
-        super().__init__()
-        self.trainer = trainer
-        self.tokenizer = tokenizer
-        self.sample_dataset = val_dataset.select(range(num_samples))
-        self.freq = freq
-        self.config = config
-        self.class_labels = class_labels
-        self.train_counts = train_count
-        self.test_counts = test_count
-
-    def on_evaluate(self, args, state, control, **kwargs):
-        super().on_evaluate(args, state, control, **kwargs)
-        if state.epoch % self.freq == 0:
-            predictions = self.trainer.predict(self.sample_dataset)
-            metrics = compute_metrics(predictions, self.config)
-            self._wandb.log({"f1_micro": metrics["f1_micro"],
-                             "f1_macro": metrics["f1_macro"]})
-            table = plot_metrics(
-                metrics=metrics, 
-                class_labels=self.class_labels, 
-                train_counts=self.train_counts, 
-                test_counts=self.test_counts
-                )
-            self._wandb.log({"metrics and value_count table": table})
-
 
 def plot_metrics(metrics, class_labels, train_counts, test_counts):
     """Plot evaluation metrics and value counts in wandb
@@ -334,9 +278,9 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         test_counts (list): List of class counts for test dataset.
 
     """
-    f1 = metrics["eval_f1"]
-    precision = metrics["eval_precision"]
-    recall = metrics["eval_recall"]
+    f1 = metrics["f1"]
+    precision = metrics["precision"]
+    recall = metrics["recall"]
     data = zip(
         class_labels, precision, recall, f1, train_counts, test_counts, strict=False
     )
@@ -380,7 +324,7 @@ def run_training(args):
     wandb.log({"model_path": model_path})
 
     class_weighting = config["training_settings"]["class_weighting"]
-    metrics = train(
+    train(
         train_data,
         test_data,
         model_path=model_path,
@@ -390,9 +334,6 @@ def run_training(args):
         class_labels=class_labels,
         test_counts=test_counts,
     )
-
-    table = plot_metrics(metrics, class_labels, train_counts, test_counts)
-    wandb.log({"metrics and value_count table": table})
 
 
 if __name__ == "__main__":
