@@ -16,11 +16,11 @@ download_data:
 
 .PHONY: build_dataset
 build_dataset:
-	python src/data_processing/data_processing.py
+	uv run src/data_processing/data_processing.py
 
 .PHONY: preprocess
 preprocess:
-	python src/preprocess.py \
+	uv run src/preprocess.py \
 		"config/train_config.yaml" \
 		"data/clean/clean.parquet" \
 		"data/preprocessed"
@@ -33,9 +33,9 @@ train:
     fi
 	@echo "Training data directory: ${path}"
 
-	python src/train.py \
+	uv run src/train.py \
 		--config-path "config/train_config.yaml" \
-		--train-path "${path}/train.parquet" \
+		--train-path "${path}/train_synthetic.parquet" \
 		--test-path "${path}/test.parquet" \
 		--label-names-path "data/label_names/ukhra_ra.jsonl" \
 		--model-dir "data/model/"
