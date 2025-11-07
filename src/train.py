@@ -232,15 +232,9 @@ def prepare_compute_metrics(config):
             ):
                 # make a list of increasing thresholds same length as the
                 # number of labels
-                thresholds[0] = 0.2
-                thresholds[1] = 0.5
-                thresholds[2] = 0.8
-                thresholds[3] = 0.95
+                thresholds[0:4] = [0.2, 0.5, 0.8, 0.95]
             else:
-                thresholds[0] = 0.2
-                thresholds[1] = 0.6
-                thresholds[2] = 0.8
-                thresholds[3] = 0.9
+                thresholds[0:4] = [0.2, 0.6, 0.8, 0.9]
 
             # Prepare an array to hold your predictions
             predictions = np.zeros_like(logits)
