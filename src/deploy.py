@@ -175,7 +175,7 @@ def deploy(instance_type="ml.m5.xlarge"):
         instance_type (str): The type of SageMaker instance to use for deployment.
     """
     model_path = get_staged_model_path()
-    with wandb.init(project="grant_hrcs_tagger", job_type="staging") as run:
+    with wandb.init(project="grant_hrcs_tagger_stage_and_deploy", job_type="staging") as run:
         print(f"Creating SageMaker model with path: {model_path}")
         sagemaker_image_uri = get_sagemaker_image_uri(instance_type)
         sm_model = create_sagemaker_model(
