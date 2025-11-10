@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import boto3
+import shutil
 from dotenv import load_dotenv
 from transformers import AutoTokenizer, pipeline
 
@@ -49,13 +50,11 @@ def add_custom_inference_script(artifact_dir):
     code_dir = os.path.join(artifact_dir, "code")
     os.makedirs(code_dir, exist_ok=True)
 
-    # Read the contents of your existing inference.py
-    with open("src/inference.py", "r") as src_file:
-        inference_code = src_file.read()
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, "inference.py")
 
-    # Write it into the code directory inside the artifact
-    with open(os.path.join(code_dir, "inference.py"), "w") as dest_file:
-        dest_file.write(inference_code)
+    # use shutil to copy the file
+    shutil.copyfile(filename, os.path.join(code_dir, "inference.py"))
 
 def test_inference(model_dir):
     """Test inference on the huggingface model.
@@ -71,6 +70,8 @@ def test_inference(model_dir):
     """
     results = predict_fn({"inputs": test_text}, model_dict)
     print(f"Inference result: {results}")
+    print(model_dict["model"].config.id2label)
+    
     wandb.log({"inference_result": results})
 
 def _create_tarball(artifact_dir, output_path):
