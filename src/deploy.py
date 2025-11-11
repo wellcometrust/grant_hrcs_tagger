@@ -47,7 +47,7 @@ def get_sagemaker_image_uri(instance_type):
         str: The container image URI for the specified instance type.
     """
     transformers_version = transformers.__version__
-    torch_version = torch.__version__
+    torch_version = torch.__version__.split('+')[0]
     python_version = sys.version.split()[0]
 
     image_uri = image_uris.retrieve(
