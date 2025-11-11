@@ -8,7 +8,7 @@ from pathlib import Path
 import boto3
 import shutil
 from dotenv import load_dotenv
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer
 
 import wandb
 
@@ -17,7 +17,6 @@ load_dotenv()
 MODEL_REGISTRY = os.environ.get("MODEL_REGISTRY")
 SAGEMAKER_BUCKET = os.environ.get("SAGEMAKER_BUCKET")
 
-
 def link_to_registry(model_name):
     """Link the model to the W&B registry.
 
@@ -25,13 +24,12 @@ def link_to_registry(model_name):
         model_name (str): Name of the model to link to the W&B registry.
     """
     with wandb.init(project="grant_hrcs_tagger_stage_and_deploy", job_type="model_linking") as run:
-        artifact = wandb.use_artifact("model_name", type="model")
+        artifact = wandb.use_artifact(model_name, type="model")
         run.link_artifact(artifact, target_path=MODEL_REGISTRY)
         run.alert(
             title="Model change",
             text=f"Model {model_name} linked to registry at {MODEL_REGISTRY}.",
         )
-
 
 def add_tokenizer(artifact_dir):
     """Add tokenizer to the artifact directory.
@@ -70,7 +68,6 @@ def test_inference(model_dir):
     """
     results = predict_fn({"inputs": test_text}, model_dict)
     print(f"Inference result: {results}")
-    print(model_dict["model"].config.id2label)
     
     wandb.log({"inference_result": results})
 

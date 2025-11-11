@@ -249,19 +249,7 @@ def prepare_compute_metrics(config):
         num_tags_predicted = []
         if config["training_settings"]["output_weighting"]:
             thresholds = [1] * labels.shape[1]
-<<<<<<< HEAD
-            if (
-                config["training_settings"]["category"] == "RA"
-                or config["training_settings"]["category"] == "top_RA"
-            ):
-                # make a list of increasing thresholds same length as the
-                # number of labels
-                thresholds[0:4] = [0.2, 0.5, 0.8, 0.95]
-            else:
-                thresholds[0:4] = [0.2, 0.6, 0.8, 0.9]
-=======
             thresholds[0:4] = [0.2, 0.5, 0.8, 0.95]
->>>>>>> 9b5490a (addition of labels)
 
             # Prepare an array to hold your predictions
             predictions = np.zeros_like(logits)
