@@ -31,23 +31,19 @@ train:
         echo "Error: path variable is undefined - please specify as make tests path=<path>"; \
         exit 1; \
     fi
-	@echo "Training data directory: ${path}"
+	@echo "Training data directory: ${data_path}"
 
 	python src/train.py \
 		--config-path "config/train_config.yaml" \
-		--train-path "${path}/train.parquet" \
-		--test-path "${path}/test.parquet" \
-		--label-names-path "data/label_names/ukhra_ra.jsonl" \
+		--train-path "${data_path}/train.parquet" \
+		--test-path "${data_path}/test.parquet" \
+		--label-names-path "${label_path}" \
 		--model-dir "data/model/"
 
 .PHONY: train_ra
 train_ra:
-	$(MAKE) train path="data/preprocessed/ra"
+	$(MAKE) train data_path="data/preprocessed/ra" label_path="data/label_names/label_mapping_long.json"
 
 .PHONY: train_ra_top
 train_ra_top:
-	$(MAKE) train path="data/preprocessed/ra_top"
-
-.PHONY: train_hc
-train_hc:
-	$(MAKE) train path="data/preprocessed/hc"
+	$(MAKE) train data_path="data/preprocessed/ra_top" label_path="data/label_names/label_mapping_short.json"
