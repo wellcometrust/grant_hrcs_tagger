@@ -1,23 +1,79 @@
 # Grant HRCS Tagging Model
 Machine learning classifier model for tagging research grants with HRCS Health Category and Research Activity Code tags based on title and grant abstract.
 
-Developed by the Machine Learning team, within Data & Digital at the Wellcome Trust.
+Developed by the Machine Learning team, within Data & Digital at [the Wellcome Trust](https://wellcome.org/).
 
 ### Data
-Aknowledgement, the data used for this project was compiled as part of the UK Health Research Analysis studies: UK Health Research Analysis 2022 (UK Clinical Research Collaboration , 2023) https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
+Acknowledgment, for training and evaluation of our model we used the following datasets:
+* UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online: https://hrcsonline.net/. E.g. the 2022 report data can be found here: https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
+* NIHR tagged awards dataset: https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
 
-## Set up
+## To use the latest model for tagging
+[instructions to be added on how to download and use the latest trained model via Huggingface]
 
-### 1. Environment set up
+## To set up the project for training and development
 
-Start with setting up the virtual environment for this project. Make sure you have conda installed as we will use it as an environment manager. [If conda is not installed, installing miniconda is a good starting point](https://docs.anaconda.com/miniconda/install/#quick-command-line-install)
+### 1. Install uv
 
-:green_apple: On Mac M1 `conda env create -f environment_mac.yml` 
-:penguin: On Linux `conda env create -f environment.yml` 
+First, install uv, a fast Python package manager. You can install it using:
 
-The environment can be activates with `conda activate hrcs_tagger`
+```shell
+# On macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-### 2. Downloading the dataset
+# On Windows
+powershell -c "irm https://astral.sh/uv/install.sh | iex"
+
+# Or with pip
+pip install uv
+```
+
+For more installation options, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### 2. Environment set up
+
+Set up the project environment using uv, which will read from the `pyproject.toml` file:
+
+```shell
+# Sync dependencies and create virtual environment
+uv sync
+```
+
+You can run python scripts directly with uv without activating the virtual environment explicitly:
+
+```shell
+uv run a_python_script.py
+```
+
+To make things even easier, we use the following `make` commands to run common tasks.
+
+### 4. Make commands
+
+The project includes several `make` commands to streamline common tasks:
+
+```
+# Download raw datasets from HRCS online and NIHR
+make download_data
+```
+This make command assumes `wget` is installed, which on a Mac you will have to install first, `brew install wget`.
+```
+# Process and clean the downloaded data into parquet files
+make build_dataset
+
+# Preprocess data for training (splits into train/test sets)
+make preprocess
+
+# Train models for different tag types:
+make train_ra      # Train Research Activity model
+make train_ra_top  # Train Research Activity (top level) model  
+
+# Get help and see all available commands
+make help
+```
+
+**Note:** The training commands assume you have already run `make preprocess` to prepare the training data.
+
+### 5. Downloading the dataset
 
 To Download the UK Health Research Analysis data used for training, run: 
 
