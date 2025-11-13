@@ -49,7 +49,8 @@ To make things even easier, we use the following `make` commands to run common t
 
 ### 4. Make commands
 
-The project includes several `make` commands to streamline common tasks:
+The project includes several `make` commands to streamline common tasks: 
+**Note:** it is best to run these 
 
 ```
 # Download raw datasets from HRCS online and NIHR
@@ -71,18 +72,4 @@ make train_ra_top  # Train Research Activity (top level) model
 make help
 ```
 
-**Note:** The training commands assume you have already run `make preprocess` to prepare the training data.
 
-### 5. Downloading the dataset
-
-To Download the UK Health Research Analysis data used for training, run: 
-
-```shell
-make build_dataset
-```
-- This command downloads the tagged Excel data from from https://hrcsonline.net/.
-- Then calls a Python script that compiles these datasets into single cleaned parquet files.
-- Each parquet file represents a tag type with one file for RAC division, RAC group and Health Category.
-- Each row represents a grant and tag combination, there can be multiple rows/tags per grant.
-
-This make command assumes `wget` is installed, which on a Mac you will have to install first, `brew install wget`.
