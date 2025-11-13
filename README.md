@@ -68,8 +68,51 @@ make preprocess
 make train_ra      # Train Research Activity model
 make train_ra_top  # Train Research Activity (top level) model  
 
-# Get help and see all available commands
+# See all available commands
 make help
 ```
+
+### 5. Fine-tune the model
+
+To train your own HRCS tagging model, you'll need:
+
+**Hardware Requirements:**
+- A GPU is highly recommended for training. The code supports:
+  - CUDA GPUs (NVIDIA)
+  - Apple Silicon (M1/M2/M3/M4/...) via MPS
+
+**Training Steps:**
+
+1. **Download and preprocess data** (if not already done):
+```shell
+make download_data
+make build_dataset  
+make preprocess
+```
+
+2. **Configure training settings** by editing `config/train_config.yaml`:
+
+```yaml
+training_settings:
+  category: 'RA'  # Choose: "RA" (Research Activity), "RA_top" (top-level), or "HC" (Health Category)
+  model: 'answerdotai/ModernBERT-base'  # Also supports 'distilbert-base-uncased' or any model compatible with AutoModelForSequenceClassification
+  learning_rate: 0.0001
+  num_train_epochs: 3  # Increase for better performance (try 3-5)
+  per_device_train_batch_size: 16  # Reduce if you get GPU memory errors
+  class_weighting: False  # Set to True to handle label imbalance
+  output_weighting: True  # Set to True for custom prediction thresholds, we found this to slightly improve performance
+```
+
+3. **Run training**:
+```shell
+# Train Research Activity model
+make train_ra # for the low level RAC codes
+make train_ra_top  # for the top level RAC codes
+```
+
+**Monitoring with Weights & Biases:**
+The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If you have a wandb account, training metrics will be automatically logged. If you don't have access to wandb, you can disable it by setting `report_to: null` in the config file.
+
+Trained models are saved to `data/model/` and can be used for inference on new grants.
 
 
