@@ -52,7 +52,12 @@ ignore = ["D100", "D104", "E501"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.uv.sources]
+wtdbc = { git = "https://github.com/wellcometrust/wtdbc.git" }
+
 [dependency-groups]
 dev = [
+    "dotenv>=0.9.9",
     "ipykernel>=6.29.5",
+    "wtdbc",
 ]
