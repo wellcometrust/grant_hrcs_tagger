@@ -26,7 +26,11 @@ def predict_fn(data, model_dict):
     model = model_dict["model"]
     tokenizer = model_dict["tokenizer"]
 
-    inputs = tokenizer(data["inputs"], return_tensors="pt", truncation=True, padding=True)
+    # preprocess the input text
+    text_input = data["inputs"]
+    text_input = " ".join(text_input.split())
+
+    inputs = tokenizer(text_input, return_tensors="pt", truncation=True, padding=True)
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
@@ -38,9 +42,7 @@ def predict_fn(data, model_dict):
         # Prepare an array to hold your predictions
         predictions = np.zeros_like(logits)
 
-        # Loop through each sample's logits
         for i, logit in enumerate(logits):
-            # Get the indices of the logits sorted by value in descending order
             sorted_indices = np.argsort(logit)[::-1]
 
             # Assign 1 to the top logits that exceed their respective thresholds

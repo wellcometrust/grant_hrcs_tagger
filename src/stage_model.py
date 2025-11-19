@@ -1,16 +1,17 @@
 import argparse
 import os
+import shutil
 import tarfile
 import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import boto3
-import shutil
+import wandb
 from dotenv import load_dotenv
 from transformers import AutoTokenizer
 
-import wandb
+from inference import model_fn, predict_fn
 
 load_dotenv()
 
@@ -60,11 +61,11 @@ def test_inference(model_dir):
     Args:
         model_dir (str): Path to the model directory.
     """
-    from src.inference import model_fn, predict_fn
+
     model_dict = model_fn(model_dir)
     test_text = """
-    This topic focuses on identifying and characterising endogenous factors that contribute to the onset, progression, or risk of diseases and health conditions. It encompasses genetic elements, molecular and physiological functions, and biological traits associated with ethnicity, age, gender, pregnancy, and body weight. It also includes internal biological responses to infections or external damage, processes such as metastasis, degeneration, regeneration, and repair, as well as complications, recurrence, and secondary conditions. Additionally, it involves bioinformatics, structural biology, and the development of models to better understand these mechanisms.
-    This category covers the discovery and development of medical devices, including implantable technologies, mobility aids, dressings, equipment, and prostheses. It also involves biological safety assessments, investigations into adverse events, sterilisation and decontamination procedures, and testing within in vitro and in vivo model systems to ensure safety and efficacy.
+    This topic focuses on identifying and characterising endogenous factors that contribute to the onset, progression, or risk of diseases and health conditions. It encompasses genetic elements, molecular and physiological functions, and biological traits associated with ethnicity, age, gender, pregnancy, and body weight.
+        This category covers the discovery and development of medical devices, including implantable technologies, mobility aids, dressings, equipment, and prostheses. It also involves biological safety assessments, investigations into adverse events, sterilisation and decontamination procedures, and testing within in vitro and in vivo model systems to ensure safety and efficacy.
     """
     results = predict_fn({"inputs": test_text}, model_dict)
     print(f"Inference result: {results}")
