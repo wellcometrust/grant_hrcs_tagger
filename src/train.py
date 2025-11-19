@@ -21,6 +21,29 @@ import wandb
 from utils import load_yaml_config
 
 
+def init_wandb(project_name, config_settings, report_to):
+    """Initialize wandb if reporting is enabled.
+    
+    Args:
+        project_name (str): Name of the wandb project
+        config_settings (dict): Configuration settings to log
+        report_to (str): Reporting destination ('wandb' or None)
+    """
+    if report_to == "wandb":
+        wandb.init(project=project_name, config=config_settings)
+
+
+def log_to_wandb(data, report_to):
+    """Log data to wandb if reporting is enabled.
+    
+    Args:
+        data (dict): Data to log
+        report_to (str): Reporting destination ('wandb' or None)
+    """
+    if report_to == "wandb":
+        wandb.log(data)
+
+
 def init_device():
     """Initialize device to use for training.
 
@@ -114,10 +137,10 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     test_dataset = HRCSDataset(test_encoding, test_y)
 
     device = init_device()
-    wandb.log({"device": device})
+    log_to_wandb({"device": device}, config["training_settings"]["report_to"])
 
     num_labels = len(test_dataset[0]["labels"])
-    wandb.log({"num_labels": num_labels})
+    log_to_wandb({"num_labels": num_labels}, config["training_settings"]["report_to"])
 
     # initialize model
     if "modernbert" in config["training_settings"]["model"].lower():
@@ -147,6 +170,10 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     model.to(device)
 
     # initialize training arguments
+    report_to_value = config["training_settings"]["report_to"]
+    if report_to_value is None:
+        report_to_value = "none"  # Transformers expects "none" instead of None
+    
     training_args = TrainingArguments(
         learning_rate=config["training_settings"]["learning_rate"],
         num_train_epochs=config["training_settings"]["num_train_epochs"],
@@ -157,7 +184,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             "per_device_eval_batch_size"
         ],
         weight_decay=config["training_settings"]["weight_decay"],
-        report_to=config["training_settings"]["report_to"],
+        report_to=report_to_value,
         save_strategy=config["training_settings"]["save_strategy"],
         save_total_limit=config["training_settings"]["save_total_limit"],
         output_dir=model_path,
@@ -265,7 +292,7 @@ def prepare_compute_metrics(config):
                 pd.Series(num_tags_predicted).value_counts().sort_index(),
             )
             log_data = pd.Series(num_tags_predicted).value_counts()
-            wandb.log({"num_tags_predicted": log_data.sort_index().to_json()})
+            log_to_wandb({"num_tags_predicted": log_data.sort_index().to_json()}, config["training_settings"]["report_to"])
 
         # compute actual metrics
         f1_macro = f1_score(labels, predictions, average="macro")
@@ -286,7 +313,7 @@ def prepare_compute_metrics(config):
     return compute_metrics
 
 
-def plot_metrics(metrics, class_labels, train_counts, test_counts):
+def plot_metrics(metrics, class_labels, train_counts, test_counts, config):
     """Plot evaluation metrics and value counts in wandb
 
     Args:
@@ -294,8 +321,10 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         class_labels (list): List of class labels.
         train_counts (list): List of class counts for train dataset.
         test_counts (list): List of class counts for test dataset.
+        config (dict): Configuration dictionary.
 
     """
+        
     # pull in label names
     with open(args.label_names_path) as f:
         label_names = {k: v for line in f for k, v in json.loads(line).items()}
@@ -313,12 +342,21 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
         class_labels, precision, recall, f1, train_counts, test_counts, strict=False
     )
 
-    table = wandb.Table(
-        data=[list(values) for values in data],
-        columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
-    )
+    # Only proceed if wandb reporting is enabled
+    if config["training_settings"]["report_to"] != "wandb":
+        # print logging metrics table to terminal
+        print("Metrics and value counts:")
+        for values in data:
+            print(values)
+        return
+    
+    else:
+        table = wandb.Table(
+            data=[list(values) for values in data],
+            columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
+        )
 
-    wandb.log({"metrics and value_count table": table})
+        wandb.log({"metrics and value_count table": table})
 
 
 def run_training(args):
@@ -336,12 +374,13 @@ def run_training(args):
     train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
     test_counts = np.sum(test_data[test_data.columns[:-1]].to_numpy(), axis=0)
 
-    wandb.init(
-        project=config["wandb_settings"]["project_name"],
-        config=config["training_settings"],
+    init_wandb(
+        config["wandb_settings"]["project_name"],
+        config["training_settings"],
+        config["training_settings"]["report_to"]
     )
 
-    wandb.log({"model_path": model_path})
+    log_to_wandb({"model_path": model_path}, config["training_settings"]["report_to"])
 
     class_weighting = config["training_settings"]["class_weighting"]
     metrics = train(
@@ -353,7 +392,7 @@ def run_training(args):
         class_weighting=class_weighting,
     )
 
-    plot_metrics(metrics, class_labels, train_counts, test_counts)
+    plot_metrics(metrics, class_labels, train_counts, test_counts, config)
 
 
 if __name__ == "__main__":
