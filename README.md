@@ -111,7 +111,7 @@ make train_ra_top  # for the top level RAC codes
 ```
 
 **Monitoring with Weights & Biases:**
-The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If you have a wandb account, training metrics will be automatically logged. If you don't have access to wandb, you can disable it by setting `report_to: null` in the config file.
+The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If you have a wandb account, training metrics will be automatically logged. If you don't have access to wandb, you can disable it by setting `report_to: none` in the train_config.yaml file.
 
 Trained models are saved to `data/model/` and can be used for inference on new grants.
 
