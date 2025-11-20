@@ -1,6 +1,7 @@
 import akin
 import numpy as np
 import pandas as pd
+import string
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
 
@@ -147,16 +148,32 @@ def process_abstracts(df):
     df = df.loc[~df["AwardTitle"].str.lower().str.startswith(prefixes)]
 
     # Remove common funder specific boiler plate prefixes from abstracts.
-    for term in ("background", "background,", "background:", "objectives"):
-        # ToDo: Replace with regex.
+    for term in (
+        "background",
+        "aim",
+        "aims",
+        "background",
+        "objectives",
+        "objective",
+        "mica",
+        "what is the project about",
+        "design",
+        "description"
+    ):
         df["AwardAbstract"] = np.where(
             df["AwardAbstract"].str[: len(term)].str.lower() == term,
-            df["AwardAbstract"].str[len(term) :],
-            df["AwardAbstract"],
+            df["AwardAbstract"].str[len(term) + 1 :],
+            df["AwardAbstract"]
         )
 
+    removal_chars = string.punctuation + string.whitespace
+    df["AwardAbstract"] = df["AwardAbstract"].str.lstrip(removal_chars)
     df["AwardAbstract"] = df["AwardAbstract"].str.strip()
+
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
+    df["AllText"] = df["AllText"].str.strip()
+    df["AllText"] = df["AllText"].str.replace(r'\s+', ' ', regex=True)
+
     df = df.loc[df["AllText"].str.len() >= 110].copy()
 
     df = deduplicate(df)
@@ -172,18 +189,18 @@ def build_dataset():
     nihr_df = read_nihr_dataset()
 
     nihr = "Department of Health and Social Care"
-    nihr_refs = combined_ukhra_df.loc[combined_ukhra_df["FundingOrganisation"] == nihr][
-        "OrganisationReference"
-    ]
+    nihr_refs = combined_ukhra_df.loc[
+        combined_ukhra_df["FundingOrganisation"] == nihr
+    ]["OrganisationReference"]
 
     nihr_df = nihr_df.loc[nihr_df["OrganisationReference"].isin(nihr_refs)]
 
     print("Combining and cleaning datasets...")
     df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
+
     df["OrganisationReference"] = df["OrganisationReference"].astype(str)
-    df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
-    df["AllText"] = df["AllText"].str.strip().str.split().str.join(' ')
     df["index"] = df.index
+
     df.to_parquet("data/clean/pre_clean.parquet", index=False)
 
     df = process_abstracts(df)
