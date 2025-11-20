@@ -135,24 +135,16 @@ def process_abstracts(df):
         df["AwardAbstract"],
     )
 
-    # Remove grants that start with 'pivotal nurse support contract'
     df["AwardTitle"] = df["AwardTitle"].fillna("")
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("pivotal nurse support contract")
-    ]
 
-    # Remove grants that start with 'nihr in-practice fellowship'
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("nihr in-practice fellowship")
-    ]
+    prefixes = (
+        "pivotal nurse support contract",
+        "nihr in-practice fellowship",
+        "nurture: national unified renal",
+        "qi project: assist-ckd"
+    )
 
-    # Remove grants that start with 'nurture: national unified renal'
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("nurture: national unified renal")
-    ]
-
-    # Remove grants that start with ''qi project: assist-ckd'
-    df = df.loc[~df["AwardTitle"].str.lower().str.startswith("qi project: assist-ckd")]
+    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(prefixes)]
 
     # Remove common funder specific boiler plate prefixes from abstracts.
     for term in ("background", "background,", "background:", "objectives"):
@@ -165,7 +157,6 @@ def process_abstracts(df):
 
     df["AwardAbstract"] = df["AwardAbstract"].str.strip()
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
-    # df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
     df = df.loc[df["AllText"].str.len() >= 110].copy()
 
     df = deduplicate(df)
@@ -191,6 +182,7 @@ def build_dataset():
     df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
     df["OrganisationReference"] = df["OrganisationReference"].astype(str)
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
+    df["AllText"] = df["AllText"].str.strip().str.split().str.join(' ')
     df["index"] = df.index
     df.to_parquet("data/clean/pre_clean.parquet", index=False)
 
