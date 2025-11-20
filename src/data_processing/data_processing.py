@@ -1,9 +1,13 @@
 import akin
+import json
 import numpy as np
 import pandas as pd
 import string
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
+
+with open('src/data_processing/config.json', 'rt') as config_file:
+    config = json.load(config_file)
 
 
 def hc_rename(hc_values):
@@ -77,89 +81,26 @@ def deduplicate(df):
 
 def process_abstracts(df):
     """Clean and combine title and abstract texts."""
-    # titles and abstracts for which we like to drop the grants
-    title_drop = [
-        "mrc studentship - award title not available in public dataset",
-        "award title unavailable in public datasetredacted for public dataset",
-        "no data entered",
-    ]
-
-    abstract_drop = [
-        "award abstract not available in public dataset",
-        "award abstract unavailable in public dataset"
-        "mrc studentship - award abstract not available in public dataset",
-        "redacted for public dataset",
-    ]
-
-    # titles and abstracts for grants we like to keep but for which the title or abstract is not informative
-    title_nulls = [
-        "award title unavailable",
-        "award title unavailable in public dataset",
-        "no title available",
-    ]
-
-    abstract_nulls = [
-        "(pivotal) study",
-        "abstract not available",
-        "award abstract not available in public dataset",
-        "award abstract unavailable for analysis or public dataset",
-        "awardabstract",
-        "no data entered",
-        "cso nrs career research fellowship award - no abstract available",
-        "nihr biomedical research centre (brc) award - no abstract available",
-        "nihr biomedical research unit (bru) award - no abstract available",
-        "nihr collaboration for leadership in applied health research and care (clahrc) award - no abstract available",
-        "nihr healthcare technology cooperative (htc) - no abstract available",
-        "nihr imperial patient safety translational research centre - no abstract available",
-        "no abstract",
-        "no abstract available for this analysis",
-        "no abstract available for this analysis.",
-        "no abstract available/provided",
-        "no abstract available/provided or marked confidential",
-        "no abstract provided for this analysis",
-        "paper abstract only",
-        "rare diseases translational research collaboration (trc) - no abstract available",
-    ]
-
     # Drop grants with titles and abstracts that are not informative
-    df = df.loc[~df["AwardTitle"].str.strip().str.lower().isin(title_drop)]
-    df = df.loc[~df["AwardAbstract"].str.strip().str.lower().isin(abstract_drop)]
+    df = df.loc[~df["AwardTitle"].str.strip().str.lower().isin(config["title_drop"])]
+    df = df.loc[~df["AwardAbstract"].str.strip().str.lower().isin(config["abstract_drop"])]
 
     # Replace null titles and abstracts with empty strings
     df["AwardTitle"] = np.where(
-        df["AwardTitle"].str.strip().str.lower().isin(title_nulls), "", df["AwardTitle"]
+        df["AwardTitle"].str.strip().str.lower().isin(config["title_nulls"]), "", df["AwardTitle"]
     )
 
     df["AwardAbstract"] = np.where(
-        df["AwardAbstract"].str.strip().str.lower().isin(abstract_nulls),
+        df["AwardAbstract"].str.strip().str.lower().isin(config["abstract_nulls"]),
         "",
         df["AwardAbstract"],
     )
 
     df["AwardTitle"] = df["AwardTitle"].fillna("")
-
-    prefixes = (
-        "pivotal nurse support contract",
-        "nihr in-practice fellowship",
-        "nurture: national unified renal",
-        "qi project: assist-ckd"
-    )
-
-    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(prefixes)]
+    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(config["prefixes"])]
 
     # Remove common funder specific boiler plate prefixes from abstracts.
-    for term in (
-        "background",
-        "aim",
-        "aims",
-        "background",
-        "objectives",
-        "objective",
-        "mica",
-        "what is the project about",
-        "design",
-        "description"
-    ):
+    for term in config["funder_boiler_plate"]:
         df["AwardAbstract"] = np.where(
             df["AwardAbstract"].str[: len(term)].str.lower() == term,
             df["AwardAbstract"].str[len(term) + 1 :],

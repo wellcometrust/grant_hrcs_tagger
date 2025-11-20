@@ -1,0 +1,58 @@
+{
+    "funder_boiler_plate": [
+        "background",
+        "aim",
+        "aims",
+        "background",
+        "objectives",
+        "objective",
+        "mica",
+        "what is the project about",
+        "design",
+        "description"
+    ],
+    "prefixes": [
+        "pivotal nurse support contract",
+        "nihr in-practice fellowship",
+        "nurture: national unified renal",
+        "qi project: assist-ckd"
+    ],
+    "title_drop": [
+        "mrc studentship - award title not available in public dataset",
+        "award title unavailable in public datasetredacted for public dataset",
+        "no data entered"
+    ],
+    "abstract_drop": [
+        "award abstract not available in public dataset",
+        "award abstract unavailable in public dataset",
+        "mrc studentship - award abstract not available in public dataset",
+        "redacted for public dataset"
+    ],
+    "title_nulls": [
+        "award title unavailable",
+        "award title unavailable in public dataset",
+        "no title available"
+    ],
+    "abstract_nulls": [
+        "(pivotal) study",
+        "abstract not available",
+        "award abstract not available in public dataset",
+        "award abstract unavailable for analysis or public dataset",
+        "awardabstract",
+        "no data entered",
+        "cso nrs career research fellowship award - no abstract available",
+        "nihr biomedical research centre (brc) award - no abstract available",
+        "nihr biomedical research unit (bru) award - no abstract available",
+        "nihr collaboration for leadership in applied health research and care (clahrc) award - no abstract available",
+        "nihr healthcare technology cooperative (htc) - no abstract available",
+        "nihr imperial patient safety translational research centre - no abstract available",
+        "no abstract",
+        "no abstract available for this analysis",
+        "no abstract available for this analysis.",
+        "no abstract available/provided",
+        "no abstract available/provided or marked confidential",
+        "no abstract provided for this analysis",
+        "paper abstract only",
+        "rare diseases translational research collaboration (trc) - no abstract available"
+    ]
+}
