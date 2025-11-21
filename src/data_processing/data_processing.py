@@ -63,8 +63,16 @@ def deduplicate(df):
     return df
 
 
-def process_abstracts(df):
-    """Clean and combine title and abstract texts."""
+def process_texts(df):
+    """Clean and combine title and abstract texts.
+
+    Args:
+        df(pd.DataFrame): Dataset containing AwardTitle and AwardAbstract str columns.
+
+    Returns:
+        pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
+    
+    """
     # Drop grants with titles and abstracts that are not informative
     df = df.loc[~df["AwardTitle"].str.strip().str.lower().isin(config["title_drop"])]
     df = df.loc[~df["AwardAbstract"].str.strip().str.lower().isin(config["abstract_drop"])]
@@ -106,6 +114,31 @@ def process_abstracts(df):
     return df
 
 
+def combine_datasets(ukhra_df, nihr_df):
+    """Concatonates UKHRA and NIHR datasets into a single dataset.
+
+    Removes duplicates based on NIHR organisational reference code.
+
+    Args:
+        ukhra_df: UKHRA dataset.
+        nihr_df: NIHR dataset.
+
+    Returns:
+        pd.DataFrame: Combined dataset.
+
+    """
+    nihr_refs = ukhra_df.loc[
+        ukhra_df["FundingOrganisation"] == "Department of Health and Social Care"
+    ]["OrganisationReference"]
+
+    nihr_df = nihr_df.loc[nihr_df["OrganisationReference"].isin(nihr_refs)]
+
+    print("Combining and cleaning datasets...")
+    df = pd.concat([ukhra_df, nihr_df], ignore_index=True)
+
+    return df
+
+
 def build_dataset():
     """Builds single cleaned dataset from downloaded files"""
     print("Loading UKHRA datasets...")
@@ -113,22 +146,13 @@ def build_dataset():
     print("Loading NIHR datasets...")
     nihr_df = read_nihr_dataset()
 
-    nihr = "Department of Health and Social Care"
-    nihr_refs = combined_ukhra_df.loc[
-        combined_ukhra_df["FundingOrganisation"] == nihr
-    ]["OrganisationReference"]
-
-    nihr_df = nihr_df.loc[nihr_df["OrganisationReference"].isin(nihr_refs)]
-
-    print("Combining and cleaning datasets...")
-    df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
-
+    df = combine_datasets(combined_ukhra_df, nihr_df)
     df["OrganisationReference"] = df["OrganisationReference"].astype(str)
     df["index"] = df.index
 
     df.to_parquet("data/clean/pre_clean.parquet", index=False)
 
-    df = process_abstracts(df)
+    df = process_texts(df)
     df["HC"] = hc_rename(df["HC"])
 
     # Mixed org data types cause a pyarrow error when saving to parquet.
