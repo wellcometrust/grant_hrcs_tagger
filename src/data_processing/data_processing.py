@@ -83,7 +83,6 @@ def clean_text_column(df, col, text_type):
 
     if ref.get("prefixes"):
         for prefix in ref["prefixes"]:
-            print(df[col].str.lower().str.startswith(prefix))
             df = df.loc[~df[col].str.lower().str.startswith(prefix)]
 
     if ref.get("boiler_plate"):
