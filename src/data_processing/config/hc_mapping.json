@@ -1,0 +1,17 @@
+{
+    "cancer": "cancer and neoplasms",
+    "cardio": "cardiovascular",
+    "congenital": "congenital disorders",
+    "inflammatory": "inflammatory and immune system",
+    "inflamation and immune": "inflammatory and immune system",
+    "inflammatory and immune system": "inflammatory and immune system",
+    "injuries": "injuries and accidents",
+    "mental": "mental health",
+    "metabolic": "metabolic and endocrine",
+    "muscle": "musculoskeletal",
+    "oral": "oral and gastrointestinal",
+    "renal": "renal and urogenital",
+    "reproduction": "reproductive health and childbirth",
+    "generic": "generic health relevance",
+    "other": "disputed aetiology and other"
+}
