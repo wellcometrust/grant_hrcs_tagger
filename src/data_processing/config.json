@@ -11,11 +11,16 @@
         "design",
         "description"
     ],
-    "prefixes": [
+    "title_prefixes": [
         "pivotal nurse support contract",
         "nihr in-practice fellowship",
         "nurture: national unified renal",
-        "qi project: assist-ckd"
+        "qi project: assist-ckd",
+        "LSI Doctoral Training Centres",
+        "EPSRC Centre for Doctoral Training in",
+        "NIHR Global Health Research Group on",
+        "CRUCK",
+        "AMS Professorship award for"
     ],
     "title_drop": [
         "mrc studentship - award title not available in public dataset",
