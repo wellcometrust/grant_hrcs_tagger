@@ -63,6 +63,19 @@ def deduplicate(df):
     return df
 
 
+def process_texts():
+    """Clean and combine title and abstract texts.
+
+    Args:
+        df(pd.DataFrame): Dataset containing AwardTitle and AwardAbstract str columns.
+
+    Returns:
+        pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
+    
+    """
+
+
+
 def process_texts(df):
     """Clean and combine title and abstract texts.
 
