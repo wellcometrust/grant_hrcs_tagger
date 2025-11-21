@@ -17,10 +17,10 @@ def hc_rename(hc_values):
     """Standardise HC naming across the dataset.
 
     Args:
-        hc_value(str): health category name
+        hc_value(str): health category name.
 
-    Return:
-        str: renamed health category name
+    Returns:
+        list: Standardised health category names.
 
     """
     hc_values = hc_values.apply(lambda lst: [x.strip().lower() for x in lst])
