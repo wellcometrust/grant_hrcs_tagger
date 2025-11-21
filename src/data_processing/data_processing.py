@@ -75,13 +75,16 @@ def clean_text_column(df, col, text_type):
     """
     ref = config[text_type]
     df = df.loc[~df[col].str.strip().str.lower().isin(ref["drop"])]
+    df[col] = df[col].fillna("")
     
     df[col] = np.where(
         df[col].str.strip().str.lower().isin(ref["nulls"]), "", df[col]
     )
 
     if ref.get("prefixes"):
-        df = df.loc[~df[col].str.lower().str.startswith(ref["prefixes"])]
+        for prefix in ref["prefixes"]:
+            print(df[col].str.lower().str.startswith(prefix))
+            df = df.loc[~df[col].str.lower().str.startswith(prefix)]
 
     if ref.get("boiler_plate"):
         for term in config["boiler_plate"]:
@@ -94,7 +97,6 @@ def clean_text_column(df, col, text_type):
     removal_chars = string.punctuation + string.whitespace
     df[col] = df[col].str.lstrip(removal_chars)
     df[col] = df[col].str.strip()
-    df[col] = df[col].fillna("")
 
     return df
 
@@ -110,14 +112,13 @@ def process_texts(df):
     
     """
     df = clean_text_column(df, "AwardTitle", "title")
-    df = clean_text_column(df, "AllText", "title")
+    df = clean_text_column(df, "AwardAbstract", "title")
 
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
     df["AllText"] = df["AllText"].str.strip()
     df["AllText"] = df["AllText"].str.replace(r'\s+', ' ', regex=True)
 
     df = df.loc[df["AllText"].str.len() >= 110].copy()
-
     df = deduplicate(df)
 
     return df
