@@ -1,0 +1,76 @@
+{
+    "data_process_test": {
+            "AwardTitle": [
+                "No data Entered",
+                "Pivotal nurse supPort contract",
+                "This is a completely fine bit o text",
+                "fun with spaces.            ",
+                ", fun with PUNCTUATION!",
+                "no title available",
+                "CRUKD/0983/3423 grant",
+                "CRUK/83/3423 grant",
+                "wellcome trusT sponsored ",
+                "totally normal",
+                "totally normal",
+                "totally normal",
+                "",
+                ""
+            ],
+            "AwardAbstract": [
+                "",
+                "totally normal",
+                "totally normal",
+                "    spa.         Ces.                   Dwd.                 ",
+                "totally normal",
+                "totally normal",
+                "totally normal",
+                "!totally normal",
+                "this work was supported by the francis crick institute which receives its core funding from the uk medical research council (fc001000), the Wellcome Trust (fc001000),and cancer research uk (fc001000) totally normal",
+                "aim: to learn things",
+                "deSign The future",
+                "reDacted for public dataset",
+                "no abstract available for this analysis",
+                ""
+            ]
+    },
+    "clean_titles": [
+        "This is a completely fine bit o text",
+        "fun with spaces.",
+        "fun with PUNCTUATION!",
+        "",
+        "grant",
+        "grant",
+        "sponsored",
+        "totally normal",
+        "totally normal",
+        "totally normal",
+        "",
+        ""
+    ],
+    "clean_abstracts": [
+        "",
+        "totally normal",
+        "totally normal",
+        "spa. Ces. Dwd.",
+        "totally normal",
+        "totally normal",
+        "totally normal",
+        "totally normal",
+        "totally normal",
+        "to learn things",
+        "The future",
+        "",
+        ""
+    ],
+    "clean_alltext": [
+        "This is a completely fine bit o text totally normal",
+        "fun with spaces. spa. Ces. Dwd.",
+        "fun with PUNCTUATION! totally normal",
+        "grant totally normal",
+        "grant totally normal",
+        "sponsored totally normal",
+        "totally normal to learn things",
+        "totally normal The future"
+    ]
+    
+}

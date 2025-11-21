@@ -3,13 +3,16 @@ import json
 import numpy as np
 import pandas as pd
 import string
-from nihr_data import read_nihr_dataset
-from ukhra_data import load_combined_ukhra_datasets
+from pathlib import Path
+from .nihr_data import read_nihr_dataset
+from .ukhra_data import load_combined_ukhra_datasets
 
-with open('src/data_processing/config/config.json', 'rt') as config_file:
+current_dir = Path(__file__).parent
+
+with open(current_dir / 'config' / 'config.json', 'rt') as config_file:
     config = json.load(config_file)
 
-with open('src/data_processing/config/hc_mapping.json', 'rt') as hc_map_file:
+with open(current_dir / 'config' / 'hc_mapping.json', 'rt') as hc_map_file:
     hc_map = json.load(hc_map_file)
 
 
@@ -89,12 +92,13 @@ def clean_text_column(df, col, text_type):
 
     removal_chars = string.punctuation + string.whitespace
     df[col] = df[col].str.lstrip(removal_chars)
+    df[col] = df[col].str.replace(r'\s+', ' ', regex=True)
     df[col] = df[col].str.strip()
 
     return df
 
 
-def process_texts(df):
+def process_texts(df, min_char_len=110):
     """Clean and combine title and abstract texts.
 
     Args:
@@ -104,15 +108,13 @@ def process_texts(df):
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
     
     """
-    df = clean_text_column(df, "AwardTitle", "title")
-    df = clean_text_column(df, "AwardAbstract", "title")
+    df = clean_text_column(df.copy(), "AwardTitle", "title")
+    df = clean_text_column(df.copy(), "AwardAbstract", "abstract")
 
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
     df["AllText"] = df["AllText"].str.strip()
-    df["AllText"] = df["AllText"].str.replace(r'\s+', ' ', regex=True)
 
-    df = df.loc[df["AllText"].str.len() >= 110].copy()
-    df = deduplicate(df)
+    df = df.loc[df["AllText"].str.len() >= min_char_len].copy()
 
     return df
 
@@ -156,6 +158,8 @@ def build_dataset():
     df.to_parquet("data/clean/pre_clean.parquet", index=False)
 
     df = process_texts(df)
+    df = deduplicate(df)
+
     df["HC"] = hc_rename(df["HC"])
 
     # Mixed org data types cause a pyarrow error when saving to parquet.

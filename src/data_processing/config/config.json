@@ -18,12 +18,15 @@
         ],
         "boiler_plate": [
             "wellcome trust clinical phd programme at the university of liverpool:",
-            "cruk[d]?/[0-9]*/[0-9]",
+            "cruk[d]?/[0-9]*/[0-9]*",
             "lsi doctoral training centres",
             "epsrc centre for doctoral training in",
             "nihr global health research group on",
             "cruck",
-            "ams professorship award for"
+            "ams professorship award for",
+            "cancer research uk",
+            "cruk/ohsu",
+            "wellcome trust"
         ]
     },
     "abstract": {
@@ -39,7 +42,7 @@
             "design",
             "description",
             "x000d_",
-            "this work was supported by the francis crick institute which receives its core funding from the uk medical research council (fc001000), the Wellcome Trust (fc001000),and cancer research uk (fc001000) "
+            "this work was supported by the francis crick institute which receives its core funding from the uk medical research council \\(fc001000\\), the Wellcome Trust \\(fc001000\\),and cancer research uk \\(fc001000\\)"
         ],
         "drop": [
             "award abstract not available in public dataset",
@@ -67,7 +70,8 @@
             "no abstract available/provided or marked confidential",
             "no abstract provided for this analysis",
             "paper abstract only",
-            "rare diseases translational research collaboration (trc) - no abstract available"
+            "rare diseases translational research collaboration (trc) - no abstract available",
+            "no abstract provided for this analysis"
         ],
         "prefixes": []
     }
