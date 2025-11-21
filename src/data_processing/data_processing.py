@@ -10,7 +10,7 @@ with open('src/data_processing/config/config.json', 'rt') as config_file:
     config = json.load(config_file)
 
 with open('src/data_processing/config/hc_mapping.json', 'rt') as hc_map_file:
-        hc_map = json.load(hc_map_file)
+    hc_map = json.load(hc_map_file)
 
 
 def hc_rename(hc_values):
