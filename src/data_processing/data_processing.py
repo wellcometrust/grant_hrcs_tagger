@@ -6,12 +6,15 @@ import string
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
 
-with open('src/data_processing/config.json', 'rt') as config_file:
+with open('src/data_processing/config/config.json', 'rt') as config_file:
     config = json.load(config_file)
+
+with open('src/data_processing/config/hc_mapping.json', 'rt') as hc_map_file:
+        hc_map = json.load(hc_map_file)
 
 
 def hc_rename(hc_values):
-    """Steamline HC naming
+    """Standardise HC naming across the dataset.
 
     Args:
         hc_value(str): health category name
@@ -21,26 +24,7 @@ def hc_rename(hc_values):
 
     """
     hc_values = hc_values.apply(lambda lst: [x.strip().lower() for x in lst])
-
-    streamline_dict = {
-        "cancer": "cancer and neoplasms",
-        "cardio": "cardiovascular",
-        "congenital": "congenital disorders",
-        "inflammatory": "inflammatory and immune system",
-        "inflamation and immune": "inflammatory and immune system",
-        "inflammatory and immune system": "inflammatory and immune system",
-        "injuries": "injuries and accidents",
-        "mental": "mental health",
-        "metabolic": "metabolic and endocrine",
-        "muscle": "musculoskeletal",
-        "oral": "oral and gastrointestinal",
-        "renal": "renal and urogenital",
-        "reproduction": "reproductive health and childbirth",
-        "generic": "generic health relevance",
-        "other": "disputed aetiology and other",
-    }
-
-    hc_values = hc_values.apply(lambda lst: [streamline_dict.get(x, x) for x in lst])
+    hc_values = hc_values.apply(lambda lst: [hc_map.get(x, x) for x in lst])
 
     return hc_values
 
@@ -97,7 +81,7 @@ def process_abstracts(df):
     )
 
     df["AwardTitle"] = df["AwardTitle"].fillna("")
-    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(config["prefixes"])]
+    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(config["title_prefixes"])]
 
     # Remove common funder specific boiler plate prefixes from abstracts.
     for term in config["funder_boiler_plate"]:
