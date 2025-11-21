@@ -81,17 +81,11 @@ def clean_text_column(df, col, text_type):
         df[col].str.strip().str.lower().isin(ref["nulls"]), "", df[col]
     )
 
-    if ref.get("prefixes"):
-        for prefix in ref["prefixes"]:
-            df = df.loc[~df[col].str.lower().str.startswith(prefix)]
+    for prefix in ref["prefixes"]:
+        df = df.loc[~df[col].str.lower().str.startswith(prefix)]
 
-    if ref.get("boiler_plate"):
-        for term in config["boiler_plate"]:
-            df[col] = np.where(
-                df[col].str[: len(term)].str.lower() == term,
-                df[col].str[len(term) + 1 :],
-                df[col]
-            )
+    for pat in ref["boiler_plate"]:
+        df[col] = df[col].str.replace(f"^{pat}", "", n=1, case=False, regex=True)
 
     removal_chars = string.punctuation + string.whitespace
     df[col] = df[col].str.lstrip(removal_chars)

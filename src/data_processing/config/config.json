@@ -4,12 +4,7 @@
             "pivotal nurse support contract",
             "nihr in-practice fellowship",
             "nurture: national unified renal",
-            "qi project: assist-ckd",
-            "LSI Doctoral Training Centres",
-            "EPSRC Centre for Doctoral Training in",
-            "NIHR Global Health Research Group on",
-            "CRUCK",
-            "AMS Professorship award for"
+            "qi project: assist-ckd"
         ],
         "drop": [
             "mrc studentship - award title not available in public dataset",
@@ -22,7 +17,13 @@
             "no title available"
         ],
         "boiler_plate": [
-            "wellcome trust clinical phd programme at the university of liverpool:"
+            "wellcome trust clinical phd programme at the university of liverpool:",
+            "cruk[d]?/[0-9]*/[0-9]",
+            "lsi doctoral training centres",
+            "epsrc centre for doctoral training in",
+            "nihr global health research group on",
+            "cruck",
+            "ams professorship award for"
         ]
     },
     "abstract": {
@@ -67,6 +68,7 @@
             "no abstract provided for this analysis",
             "paper abstract only",
             "rare diseases translational research collaboration (trc) - no abstract available"
-        ]
+        ],
+        "prefixes": []
     }
 }
