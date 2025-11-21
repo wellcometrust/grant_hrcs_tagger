@@ -63,7 +63,7 @@ def deduplicate(df):
     return df
 
 
-def process_texts():
+def clean_text_column(df, col, text_type):
     """Clean and combine title and abstract texts.
 
     Args:
@@ -73,7 +73,30 @@ def process_texts():
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
     
     """
+    ref = config[text_type]
+    df = df.loc[~df[col].str.strip().str.lower().isin(ref["drop"])]
+    
+    df[col] = np.where(
+        df[col].str.strip().str.lower().isin(ref["nulls"]), "", df[col]
+    )
 
+    if ref.get("prefixes"):
+        df = df.loc[~df[col].str.lower().str.startswith(ref["prefixes"])]
+
+    if ref.get("boiler_plate"):
+        for term in config["boiler_plate"]:
+            df[col] = np.where(
+                df[col].str[: len(term)].str.lower() == term,
+                df[col].str[len(term) + 1 :],
+                df[col]
+            )
+
+    removal_chars = string.punctuation + string.whitespace
+    df[col] = df[col].str.lstrip(removal_chars)
+    df[col] = df[col].str.strip()
+    df[col] = df[col].fillna("")
+
+    return df
 
 
 def process_texts(df):
@@ -86,35 +109,8 @@ def process_texts(df):
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
     
     """
-    # Drop grants with titles and abstracts that are not informative
-    df = df.loc[~df["AwardTitle"].str.strip().str.lower().isin(config["title_drop"])]
-    df = df.loc[~df["AwardAbstract"].str.strip().str.lower().isin(config["abstract_drop"])]
-
-    # Replace null titles and abstracts with empty strings
-    df["AwardTitle"] = np.where(
-        df["AwardTitle"].str.strip().str.lower().isin(config["title_nulls"]), "", df["AwardTitle"]
-    )
-
-    df["AwardAbstract"] = np.where(
-        df["AwardAbstract"].str.strip().str.lower().isin(config["abstract_nulls"]),
-        "",
-        df["AwardAbstract"],
-    )
-
-    df["AwardTitle"] = df["AwardTitle"].fillna("")
-    df = df.loc[~df["AwardTitle"].str.lower().str.startswith(config["title_prefixes"])]
-
-    # Remove common funder specific boiler plate prefixes from abstracts.
-    for term in config["funder_boiler_plate"]:
-        df["AwardAbstract"] = np.where(
-            df["AwardAbstract"].str[: len(term)].str.lower() == term,
-            df["AwardAbstract"].str[len(term) + 1 :],
-            df["AwardAbstract"]
-        )
-
-    removal_chars = string.punctuation + string.whitespace
-    df["AwardAbstract"] = df["AwardAbstract"].str.lstrip(removal_chars)
-    df["AwardAbstract"] = df["AwardAbstract"].str.strip()
+    df = clean_text_column(df, "AwardTitle", "title")
+    df = clean_text_column(df, "AllText", "title")
 
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
     df["AllText"] = df["AllText"].str.strip()

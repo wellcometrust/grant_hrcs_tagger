@@ -1,6 +1,6 @@
 {
     "title": {
-        "title_prefixes": [
+        "prefixes": [
             "pivotal nurse support contract",
             "nihr in-practice fellowship",
             "nurture: national unified renal",
@@ -11,19 +11,19 @@
             "CRUCK",
             "AMS Professorship award for"
         ],
-        "title_drop": [
+        "drop": [
             "mrc studentship - award title not available in public dataset",
             "award title unavailable in public datasetredacted for public dataset",
             "no data entered"
         ],
-        "title_nulls": [
+        "nulls": [
             "award title unavailable",
             "award title unavailable in public dataset",
             "no title available"
         ]
     },
     "abstract": {
-        "funder_boiler_plate": [
+        "boiler_plate": [
             "background",
             "aim",
             "aims",
@@ -35,13 +35,13 @@
             "design",
             "description"
         ],
-        "abstract_drop": [
+        "drop": [
             "award abstract not available in public dataset",
             "award abstract unavailable in public dataset",
             "mrc studentship - award abstract not available in public dataset",
             "redacted for public dataset"
         ],
-        "abstract_nulls": [
+        "nulls": [
             "(pivotal) study",
             "abstract not available",
             "award abstract not available in public dataset",
