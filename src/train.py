@@ -18,6 +18,7 @@ from transformers import (
 )
 
 import wandb
+import warnings
 from utils import load_yaml_config
 
 
@@ -34,6 +35,7 @@ def init_device():
     elif torch.cuda.is_available():
         return "cuda"
     else:
+        warnings.warn("No hardware acceleration available!!!")
         return "cpu"
 
 
