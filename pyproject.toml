@@ -10,7 +10,6 @@ dependencies = [
     "datasketch>=1.6.5",
     "flash-attn==2.7.4.post1",
     "jupyterlab>=4.3.5",
-    "matplotlib>=3.10.7",
     "mmh3>=5.1.0",
     "numpy==1.26.4",
     "openpyxl>=3.1.5",
