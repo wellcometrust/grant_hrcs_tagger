@@ -143,6 +143,8 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         )
         print("model initialized using AutoModelForSequenceClassification")
 
+    model = model.to(device)
+
     # initialize training arguments
     training_args = TrainingArguments(
         learning_rate=config["training_settings"]["learning_rate"],
