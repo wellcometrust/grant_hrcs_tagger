@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import string
 from pathlib import Path
-from .nihr_data import read_nihr_dataset
-from .ukhra_data import load_combined_ukhra_datasets
+from nihr_data import read_nihr_dataset
+from ukhra_data import load_combined_ukhra_datasets
 
 current_dir = Path(__file__).parent
 
