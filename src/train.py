@@ -143,8 +143,6 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         )
         print("model initialized using AutoModelForSequenceClassification")
 
-    model = model.to(device)
-
     # initialize training arguments
     training_args = TrainingArguments(
         learning_rate=config["training_settings"]["learning_rate"],
@@ -177,7 +175,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             eval_dataset=test_dataset,
             data_collator=data_collator,
             compute_metrics=compute_metrics,
-            class_weights=class_weights,
+            class_weights=class_weights
         )
     else:
         trainer = Trainer(
@@ -186,7 +184,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             train_dataset=train_dataset,
             eval_dataset=test_dataset,
             data_collator=data_collator,
-            compute_metrics=compute_metrics,
+            compute_metrics=compute_metrics
         )
 
     # train and evaluate
