@@ -495,6 +495,15 @@ wheels = [
 ]
 
 [[package]]
+name = "einops"
+version = "0.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/81/df4fbe24dff8ba3934af99044188e20a98ed441ad17a274539b74e82e126/einops-0.8.1.tar.gz", hash = "sha256:de5d960a7a761225532e0f1959e5315ebeafc0cd43394732f103ca44b9837e84", size = 54805 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/62/9773de14fe6c45c23649e98b83231fffd7b9892b6cf863251dc2afa73643/einops-0.8.1-py3-none-any.whl", hash = "sha256:919387eb55330f5757c6bea9165c5ff5cfe63a642682ea788a6d472576d81737", size = 64359 },
+]
+
+[[package]]
 name = "et-xmlfile"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -543,6 +552,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/dc/9c/0b15fb47b464e1b66
 wheels = [
     { url = "https://files.pythonhosted.org/packages/89/ec/00d68c4ddfedfe64159999e5f8a98fb8442729a63e2077eb9dcd89623d27/filelock-3.17.0-py3-none-any.whl", hash = "sha256:533dc2f7ba78dc2f0f531fc6c4940addf7b70a481e269a5a3b93be94ffbe8338", size = 16164, upload-time = "2025-01-21T20:04:47.734Z" },
 ]
+
+[[package]]
+name = "flash-attn"
+version = "2.7.4.post1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "einops" },
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/11/34/9bf60e736ed7bbe15055ac2dab48ec67d9dbd088d2b4ae318fd77190ab4e/flash_attn-2.7.4.post1.tar.gz", hash = "sha256:f03485c9a49a4d68d0733acdcad80ab0e72afa025a777fdc2966ceccf9d51765", size = 5986610 }
 
 [[package]]
 name = "fqdn"
@@ -606,6 +625,7 @@ dependencies = [
     { name = "akin" },
     { name = "click" },
     { name = "datasketch" },
+    { name = "flash-attn" },
     { name = "jupyterlab" },
     { name = "mmh3" },
     { name = "numpy" },
@@ -637,6 +657,7 @@ requires-dist = [
     { name = "akin", specifier = "==1.0.1" },
     { name = "click", specifier = ">=8.1.8" },
     { name = "datasketch", specifier = ">=1.6.5" },
+    { name = "flash-attn", specifier = "==2.7.4.post1" },
     { name = "jupyterlab", specifier = ">=4.3.5" },
     { name = "mmh3", specifier = ">=5.1.0" },
     { name = "numpy", specifier = "==1.26.4" },
