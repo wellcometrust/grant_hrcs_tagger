@@ -177,7 +177,7 @@ def deploy(instance_type="ml.m5.xlarge", model_path = None, delete_endpoint_afte
 
         test_endpoint(predictor)
 
-        if model_path is not None: # to avoid tagging for production when a custom model path is provided
+        if model_path is None: # to avoid tagging for production when a custom model path is provided
             proceed = (
                 input(
                     "Do you want to proceed and tag this model for use in production? (Y/N): "
