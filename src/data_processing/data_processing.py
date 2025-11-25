@@ -9,10 +9,10 @@ from ukhra_data import load_combined_ukhra_datasets
 
 current_dir = Path(__file__).parent
 
-with open(current_dir / 'config' / 'config.json', 'rt') as config_file:
-    config = json.load(config_file)
+with open(current_dir / 'transforms' / 'reference.json', 'rt') as ref_file:
+    text_abstract_refs = json.load(ref_file)
 
-with open(current_dir / 'config' / 'hc_mapping.json', 'rt') as hc_map_file:
+with open(current_dir / 'transforms' / 'hc_mapping.json', 'rt') as hc_map_file:
     hc_map = json.load(hc_map_file)
 
 
@@ -76,7 +76,7 @@ def clean_text_column(df, col, text_type):
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
     
     """
-    ref = config[text_type]
+    ref = text_abstract_refs[text_type]
     df = df.loc[~df[col].str.strip().str.lower().isin(ref["drop"])]
     df[col] = df[col].fillna("")
     
@@ -92,7 +92,7 @@ def clean_text_column(df, col, text_type):
 
     removal_chars = string.punctuation + string.whitespace
     df[col] = df[col].str.lstrip(removal_chars)
-    df[col] = df[col].str.replace(r'\s+', ' ', regex=True)
+    df[col] = df[col].str.split().str.join("")
     df[col] = df[col].str.strip()
 
     return df
