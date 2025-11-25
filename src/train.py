@@ -28,7 +28,6 @@ def init_device():
         str: device to use for training
     """
     torch.cuda.empty_cache()
-    torch.set_float32_matmul_precision("high")
     if torch.backends.mps.is_built():
         return "mps"
     elif torch.cuda.is_available():
@@ -143,8 +142,6 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
             problem_type="multi_label_classification",
         )
         print("model initialized using AutoModelForSequenceClassification")
-
-    model.to(device)
 
     # initialize training arguments
     training_args = TrainingArguments(
