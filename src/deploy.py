@@ -176,18 +176,20 @@ def deploy(instance_type="ml.m5.xlarge", model_path = None, delete_endpoint_afte
         )
 
         test_endpoint(predictor)
-        proceed = (
-            input(
-                "Do you want to proceed and tag this model for use in production? (Y/N): "
+
+        if model_path is not None: # to avoid tagging for production when a custom model path is provided
+            proceed = (
+                input(
+                    "Do you want to proceed and tag this model for use in production? (Y/N): "
+                )
+                .strip()
+                .lower()
             )
-            .strip()
-            .lower()
-        )
-        wandb.log({"proceed": proceed})
-        if proceed == "y":
-            tag_artifact(
-                instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri
-            )
+            wandb.log({"proceed": proceed})
+            if proceed == "y":
+                tag_artifact(
+                    instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri
+                )
 
         if delete_endpoint_after:
             delete_endpoint(predictor)

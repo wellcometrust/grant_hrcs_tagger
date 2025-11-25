@@ -36,19 +36,19 @@ def predict_fn(data, model_dict):
         logits = outputs.logits
         logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
 
-        thresholds = [1] * logits.shape[1]
-        thresholds[:4] = [0.2, 0.5, 0.8, 0.95]
+        # define different thresholds for the first four labels
+        thresholds = np.ones_like(logits)  
+        thresholds[:, :4] = [0.2, 0.5, 0.8, 0.95]  
 
-        # Prepare an array to hold your predictions
-        predictions = np.zeros_like(logits)
+        # sort logits from highest to lowest
+        sorted_indices = np.argsort(logits, axis=1)[:, ::-1]  
+        reverse_indices = np.argsort(sorted_indices, axis=1)  
 
-        for i, logit in enumerate(logits):
-            sorted_indices = np.argsort(logit)[::-1]
+        sorted_logits = np.take_along_axis(logits, sorted_indices, axis=1)  
+        sorted_predictions = np.where(sorted_logits >= thresholds, 1, 0)  
 
-            # Assign 1 to the top logits that exceed their respective thresholds
-            for rank, idx in enumerate(sorted_indices):
-                if logit[idx] > thresholds[rank]:
-                    predictions[i, idx] = 1
+        # rearrange predictions back to original order
+        predictions = np.take_along_axis(sorted_predictions, reverse_indices, axis=1) 
         
         # now only keep predictions and logits for the predictions that are 1
         results = []
