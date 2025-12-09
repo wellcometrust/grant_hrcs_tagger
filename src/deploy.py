@@ -75,7 +75,7 @@ def create_sagemaker_model(model_path, sagemaker_image_uri):
     """
     sm_model = HuggingFaceModel(
         model_data=model_path,
-        image_uri=sagemaker_image_uri,
+        image_uri=sagemaker_image_uri  
     )
 
     return sm_model
@@ -117,24 +117,8 @@ def test_endpoint(predictor):
     """
     test_data = {
         "inputs": """
-        Advancements in biomedical research hold the promise of profoundly improving health outcomes through 
-        innovative approaches to diagnosis, treatment, and prevention of diseases. This grant proposes a comprehensive 
-        study aimed at understanding the molecular underpinnings of AD to develop targeted therapies that 
-        enhance efficacy while minimising side effects. Despite significant strides in medical science, AD
-        remains a leading cause of morbidity and mortality worldwide, necessitating focused efforts to decipher its complex 
-        biological mechanisms. The proposed research will employ cutting-edge techniques such as CRISPR-Cas9 gene editing, 
-        high-throughput sequencing, and advanced bioinformatics analysis to map genetic and molecular pathways 
-        involved in disease progression. By integrating data from genomics, proteomics, and metabolomics, we aim to identify 
-        novel biomarkers for early detection and delineate key targets for therapeutic intervention.
-        Our multidisciplinary team is uniquely positioned to tackle these challenges, combining expertise in molecular biology, 
-        clinical medicine, and computational science. The project will not only elucidate the pathophysiology 
-        of AD but will also foster translational research efforts to bridge laboratory findings with clinical applications. 
-        Collaborations with leading research institutes and industry partners will ensure rigorous validation and 
-        potential scalability of our findings. Ultimately, this grant seeks to contribute to personalised medicine approaches, 
-        offering patients tailored treatments based on their genetic profiles, thus improving clinical outcomes and 
-        quality of life. Furthermore, by advancing our understanding of AD, we aim to set a foundation for future research 
-        initiatives exploring similar complex disorders. Through this endeavour, we aspire to push the boundaries of 
-        medical research, paving the way for innovative solutions that address one of today’s most pressing health challenges.
+        This topic focuses on identifying and characterising endogenous factors that contribute to the onset, progression, or risk of diseases and health conditions. It encompasses genetic elements, molecular and physiological functions, and biological traits associated with ethnicity, age, gender, pregnancy, and body weight.
+        This category covers the discovery and development of medical devices, including implantable technologies, mobility aids, dressings, equipment, and prostheses. It also involves biological safety assessments, investigations into adverse events, sterilisation and decontamination procedures, and testing within in vitro and in vivo model systems to ensure safety and efficacy.
         """
     }
 
@@ -168,14 +152,16 @@ def delete_endpoint(predictor):
     print("Endpoint deleted.")
 
 
-def deploy(instance_type="ml.m5.xlarge"):
+def deploy(instance_type="ml.m5.xlarge", model_path = None, delete_endpoint_after=True):
     """Deploy the HRCSTagger model to SageMaker using the provided configuration.
 
     Args:
         instance_type (str): The type of SageMaker instance to use for deployment.
     """
-    model_path = get_staged_model_path()
-    with wandb.init(project="grant_hrcs_tagger", job_type="staging") as run:
+    if model_path is None:
+        model_path = get_staged_model_path()
+    
+    with wandb.init(project="grant_hrcs_tagger_stage_and_deploy", job_type="staging") as run:
         print(f"Creating SageMaker model with path: {model_path}")
         sagemaker_image_uri = get_sagemaker_image_uri(instance_type)
         sm_model = create_sagemaker_model(
@@ -190,21 +176,24 @@ def deploy(instance_type="ml.m5.xlarge"):
         )
 
         test_endpoint(predictor)
-        proceed = (
-            input(
-                "Do you want to proceed and tag this model for use in production? (Y/N): "
-            )
-            .strip()
-            .lower()
-        )
-        wandb.log({"proceed": proceed})
-        if proceed == "y":
-            tag_artifact(
-                instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri
-            )
 
-        delete_endpoint(predictor)
-        run.alert(title="HRCSTagger Endpoint", text="HRCSTagger endpoint deleted.")
+        if model_path is None: # to avoid tagging for production when a custom model path is provided
+            proceed = (
+                input(
+                    "Do you want to proceed and tag this model for use in production? (Y/N): "
+                )
+                .strip()
+                .lower()
+            )
+            wandb.log({"proceed": proceed})
+            if proceed == "y":
+                tag_artifact(
+                    instance_type=instance_type, sagemaker_image_uri=sagemaker_image_uri
+                )
+
+        if delete_endpoint_after:
+            delete_endpoint(predictor)
+            run.alert(title="HRCSTagger Endpoint", text="HRCSTagger endpoint deleted.")
 
 
 if __name__ == "__main__":
@@ -215,6 +204,21 @@ if __name__ == "__main__":
         help="Type of SageMaker instance to use",
         default="ml.m5.xlarge",
     )
+
+    parser.add_argument(
+        "--model_path",
+        type=str,
+        help="(Optional) Path to the model tarball on S3. If not provided, the staged model will be used.",
+        default=None,
+    )
+
+    parser.add_argument(
+        "--delete_endpoint_after",
+        type=bool,
+        help="Whether to delete the endpoint after deployment and testing. Default is True.",
+        default=True,
+    )
+    
     parser.add_argument(
         "--sagemaker_config",
         type=str,
@@ -226,4 +230,4 @@ if __name__ == "__main__":
     if isinstance(args.sagemaker_config, str):
         os.environ["SAGEMAKER_USER_CONFIG_OVERRIDE"] = args.sagemaker_config
 
-    deploy(args.instance_type)
+    deploy(args.instance_type, args.model_path, args.delete_endpoint_after)

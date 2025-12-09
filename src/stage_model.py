@@ -1,21 +1,22 @@
 import argparse
 import os
+import shutil
 import tarfile
 import tempfile
 from datetime import datetime
 from pathlib import Path
 
 import boto3
-from dotenv import load_dotenv
-from transformers import AutoTokenizer, pipeline
-
 import wandb
+from dotenv import load_dotenv
+from transformers import AutoTokenizer
+
+from inference import model_fn, predict_fn
 
 load_dotenv()
 
 MODEL_REGISTRY = os.environ.get("MODEL_REGISTRY")
 SAGEMAKER_BUCKET = os.environ.get("SAGEMAKER_BUCKET")
-
 
 def link_to_registry(model_name):
     """Link the model to the W&B registry.
@@ -23,14 +24,13 @@ def link_to_registry(model_name):
     Args:
         model_name (str): Name of the model to link to the W&B registry.
     """
-    with wandb.init(project="HRCSTagger", job_type="model_linking") as run:
-        artifact = wandb.use_artifact("model_name", type="model")
+    with wandb.init(project="grant_hrcs_tagger_stage_and_deploy", job_type="model_linking") as run:
+        artifact = wandb.use_artifact(model_name, type="model")
         run.link_artifact(artifact, target_path=MODEL_REGISTRY)
         run.alert(
             title="Model change",
             text=f"Model {model_name} linked to registry at {MODEL_REGISTRY}.",
         )
-
 
 def add_tokenizer(artifact_dir):
     """Add tokenizer to the artifact directory.
@@ -41,6 +41,19 @@ def add_tokenizer(artifact_dir):
     tokenizer = AutoTokenizer.from_pretrained("answerdotai/ModernBERT-base")
     tokenizer.save_pretrained(artifact_dir)
 
+def add_custom_inference_script(artifact_dir):
+    """Add custom inference script to the artifact directory.
+    Args:
+        artifact_dir (str): Path to the artifact directory.
+    """
+    code_dir = os.path.join(artifact_dir, "code")
+    os.makedirs(code_dir, exist_ok=True)
+
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, "inference.py")
+
+    # use shutil to copy the file
+    shutil.copyfile(filename, os.path.join(code_dir, "inference.py"))
 
 def test_inference(model_dir):
     """Test inference on the huggingface model.
@@ -48,12 +61,16 @@ def test_inference(model_dir):
     Args:
         model_dir (str): Path to the model directory.
     """
-    model = pipeline("text-classification", model=model_dir)
-    test_text = "This is a test sentence for HRCSTagger."
-    result = model(test_text)
-    print(f"Inference result: {result}")
-    wandb.log({"inference_result": result})
 
+    model_dict = model_fn(model_dir)
+    test_text = """
+    This topic focuses on identifying and characterising endogenous factors that contribute to the onset, progression, or risk of diseases and health conditions. It encompasses genetic elements, molecular and physiological functions, and biological traits associated with ethnicity, age, gender, pregnancy, and body weight.
+        This category covers the discovery and development of medical devices, including implantable technologies, mobility aids, dressings, equipment, and prostheses. It also involves biological safety assessments, investigations into adverse events, sterilisation and decontamination procedures, and testing within in vitro and in vivo model systems to ensure safety and efficacy.
+    """
+    results = predict_fn({"inputs": test_text}, model_dict)
+    print(f"Inference result: {results}")
+    
+    wandb.log({"inference_result": results})
 
 def _create_tarball(artifact_dir, output_path):
     """Create a tarball of the artifact directory."""
@@ -116,11 +133,12 @@ def stage_model(model_name):
     if not model_name:
         model_name = f"{MODEL_REGISTRY}:latest"
 
-    with wandb.init(project="grant_hrcs_tagger", job_type="staging") as run:
+    with wandb.init(project="grant_hrcs_tagger_stage_and_deploy", job_type="staging") as run:
         artifact = wandb.use_artifact(model_name, type="model")
         with tempfile.TemporaryDirectory() as tmpdir:
             artifact_dir = artifact.download(tmpdir)
             add_tokenizer(artifact_dir)
+            add_custom_inference_script(artifact_dir)
             test_inference(artifact_dir)
             proceed = (
                 input("Do you want to proceed and add the model to S3? (Y/N): ")

@@ -1,41 +1,33 @@
 import akin
+import json
 import numpy as np
 import pandas as pd
+import string
+from pathlib import Path
 from nihr_data import read_nihr_dataset
 from ukhra_data import load_combined_ukhra_datasets
 
+current_dir = Path(__file__).parent
+
+with open(current_dir / 'transforms' / 'reference.json', 'rt') as ref_file:
+    text_abstract_refs = json.load(ref_file)
+
+with open(current_dir / 'transforms' / 'hc_mapping.json', 'rt') as hc_map_file:
+    hc_map = json.load(hc_map_file)
+
 
 def hc_rename(hc_values):
-    """Steamline HC naming
+    """Standardise HC naming across the dataset.
 
     Args:
-        hc_value(str): health category name
+        hc_value(str): health category name.
 
-    Return:
-        str: renamed health category name
+    Returns:
+        list: Standardised health category names.
 
     """
     hc_values = hc_values.apply(lambda lst: [x.strip().lower() for x in lst])
-
-    streamline_dict = {
-        "cancer": "cancer and neoplasms",
-        "cardio": "cardiovascular",
-        "congenital": "congenital disorders",
-        "inflammatory": "inflammatory and immune system",
-        "inflamation and immune": "inflammatory and immune system",
-        "inflammatory and immune system": "inflammatory and immune system",
-        "injuries": "injuries and accidents",
-        "mental": "mental health",
-        "metabolic": "metabolic and endocrine",
-        "muscle": "musculoskeletal",
-        "oral": "oral and gastrointestinal",
-        "renal": "renal and urogenital",
-        "reproduction": "reproductive health and childbirth",
-        "generic": "generic health relevance",
-        "other": "disputed aetiology and other",
-    }
-
-    hc_values = hc_values.apply(lambda lst: [streamline_dict.get(x, x) for x in lst])
+    hc_values = hc_values.apply(lambda lst: [hc_map.get(x, x) for x in lst])
 
     return hc_values
 
@@ -74,101 +66,80 @@ def deduplicate(df):
     return df
 
 
-def process_abstracts(df):
-    """Clean and combine title and abstract texts."""
-    # titles and abstracts for which we like to drop the grants
-    title_drop = [
-        "mrc studentship - award title not available in public dataset",
-        "award title unavailable in public datasetredacted for public dataset",
-        "no data entered",
-    ]
+def clean_text_column(df, col, text_type):
+    """Clean and combine title and abstract texts.
 
-    abstract_drop = [
-        "award abstract not available in public dataset",
-        "award abstract unavailable in public dataset"
-        "mrc studentship - award abstract not available in public dataset",
-        "redacted for public dataset",
-    ]
+    Args:
+        df(pd.DataFrame): Dataset containing AwardTitle and AwardAbstract str columns.
 
-    # titles and abstracts for grants we like to keep but for which the title or abstract is not informative
-    title_nulls = [
-        "award title unavailable",
-        "award title unavailable in public dataset",
-        "no title available",
-    ]
-
-    abstract_nulls = [
-        "(pivotal) study",
-        "abstract not available",
-        "award abstract not available in public dataset",
-        "award abstract unavailable for analysis or public dataset",
-        "awardabstract",
-        "no data entered",
-        "cso nrs career research fellowship award - no abstract available",
-        "nihr biomedical research centre (brc) award - no abstract available",
-        "nihr biomedical research unit (bru) award - no abstract available",
-        "nihr collaboration for leadership in applied health research and care (clahrc) award - no abstract available",
-        "nihr healthcare technology cooperative (htc) - no abstract available",
-        "nihr imperial patient safety translational research centre - no abstract available",
-        "no abstract",
-        "no abstract available for this analysis",
-        "no abstract available for this analysis.",
-        "no abstract available/provided",
-        "no abstract available/provided or marked confidential",
-        "no abstract provided for this analysis",
-        "paper abstract only",
-        "rare diseases translational research collaboration (trc) - no abstract available",
-    ]
-
-    # Drop grants with titles and abstracts that are not informative
-    df = df.loc[~df["AwardTitle"].str.strip().str.lower().isin(title_drop)]
-    df = df.loc[~df["AwardAbstract"].str.strip().str.lower().isin(abstract_drop)]
-
-    # Replace null titles and abstracts with empty strings
-    df["AwardTitle"] = np.where(
-        df["AwardTitle"].str.strip().str.lower().isin(title_nulls), "", df["AwardTitle"]
+    Returns:
+        pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
+    
+    """
+    ref = text_abstract_refs[text_type]
+    df = df.loc[~df[col].str.strip().str.lower().isin(ref["drop"])]
+    df[col] = df[col].fillna("")
+    
+    df[col] = np.where(
+        df[col].str.strip().str.lower().isin(ref["nulls"]), "", df[col]
     )
 
-    df["AwardAbstract"] = np.where(
-        df["AwardAbstract"].str.strip().str.lower().isin(abstract_nulls),
-        "",
-        df["AwardAbstract"],
-    )
+    for prefix in ref["prefixes"]:
+        df = df.loc[~df[col].str.lower().str.startswith(prefix)]
 
-    # Remove grants that start with 'pivotal nurse support contract'
-    df["AwardTitle"] = df["AwardTitle"].fillna("")
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("pivotal nurse support contract")
-    ]
+    for pat in ref["boiler_plate"]:
+        df[col] = df[col].str.replace(f"^{pat}", "", n=1, case=False, regex=True)
 
-    # Remove grants that start with 'nihr in-practice fellowship'
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("nihr in-practice fellowship")
-    ]
+    removal_chars = string.punctuation + string.whitespace
+    df[col] = df[col].str.lstrip(removal_chars)
+    df[col] = df[col].str.split().str.join("")
+    df[col] = df[col].str.strip()
 
-    # Remove grants that start with 'nurture: national unified renal'
-    df = df.loc[
-        ~df["AwardTitle"].str.lower().str.startswith("nurture: national unified renal")
-    ]
+    return df
 
-    # Remove grants that start with ''qi project: assist-ckd'
-    df = df.loc[~df["AwardTitle"].str.lower().str.startswith("qi project: assist-ckd")]
 
-    # Remove common funder specific boiler plate prefixes from abstracts.
-    for term in ("background", "background,", "background:", "objectives"):
-        # ToDo: Replace with regex.
-        df["AwardAbstract"] = np.where(
-            df["AwardAbstract"].str[: len(term)].str.lower() == term,
-            df["AwardAbstract"].str[len(term) :],
-            df["AwardAbstract"],
-        )
+def process_texts(df, min_char_len=110):
+    """Clean and combine title and abstract texts.
 
-    df["AwardAbstract"] = df["AwardAbstract"].str.strip()
+    Args:
+        df(pd.DataFrame): Dataset containing AwardTitle and AwardAbstract str columns.
+
+    Returns:
+        pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
+    
+    """
+    df = clean_text_column(df.copy(), "AwardTitle", "title")
+    df = clean_text_column(df.copy(), "AwardAbstract", "abstract")
+
     df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
-    # df.drop(columns=['AwardTitle', 'AwardAbstract'], inplace=True)
-    df = df.loc[df["AllText"].str.len() >= 110].copy()
+    df["AllText"] = df["AllText"].str.strip()
 
-    df = deduplicate(df)
+    df = df.loc[df["AllText"].str.len() >= min_char_len].copy()
+
+    return df
+
+
+def combine_datasets(ukhra_df, nihr_df):
+    """Concatonates UKHRA and NIHR datasets into a single dataset.
+
+    Removes duplicates based on NIHR organisational reference code.
+
+    Args:
+        ukhra_df: UKHRA dataset.
+        nihr_df: NIHR dataset.
+
+    Returns:
+        pd.DataFrame: Combined dataset.
+
+    """
+    nihr_refs = ukhra_df.loc[
+        ukhra_df["FundingOrganisation"] == "Department of Health and Social Care"
+    ]["OrganisationReference"]
+
+    nihr_df = nihr_df.loc[nihr_df["OrganisationReference"].isin(nihr_refs)]
+
+    print("Combining and cleaning datasets...")
+    df = pd.concat([ukhra_df, nihr_df], ignore_index=True)
 
     return df
 
@@ -180,21 +151,15 @@ def build_dataset():
     print("Loading NIHR datasets...")
     nihr_df = read_nihr_dataset()
 
-    nihr = "Department of Health and Social Care"
-    nihr_refs = combined_ukhra_df.loc[combined_ukhra_df["FundingOrganisation"] == nihr][
-        "OrganisationReference"
-    ]
-
-    nihr_df = nihr_df.loc[nihr_df["OrganisationReference"].isin(nihr_refs)]
-
-    print("Combining and cleaning datasets...")
-    df = pd.concat([combined_ukhra_df, nihr_df], ignore_index=True)
+    df = combine_datasets(combined_ukhra_df, nihr_df)
     df["OrganisationReference"] = df["OrganisationReference"].astype(str)
-    df["AllText"] = df["AwardTitle"].fillna("") + " " + df["AwardAbstract"].fillna("")
     df["index"] = df.index
+
     df.to_parquet("data/clean/pre_clean.parquet", index=False)
 
-    df = process_abstracts(df)
+    df = process_texts(df)
+    df = deduplicate(df)
+
     df["HC"] = hc_rename(df["HC"])
 
     # Mixed org data types cause a pyarrow error when saving to parquet.
