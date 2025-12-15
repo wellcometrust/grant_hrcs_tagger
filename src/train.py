@@ -316,9 +316,7 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts):
     )
     print(df)
 
-    table = wandb.Table(
-        data=[list(values) for values in data],
-        columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
+    table = wandb.Table(dataframe=df
     )
 
     wandb.log({"metrics and value_count table": table})
@@ -359,6 +357,15 @@ def run_training(args):
         label_names_path=args.label_names_path,
     )
 
+    # save artifacts to wandb
+    artifact = wandb.Artifact(
+        name=f"{model_name}_{timestamp}",
+        type="model",
+        description=f"Finetuned HRCS tagger model on {timestamp}",
+    )
+    artifact.add_dir(model_path)
+    wandb.log_artifact(artifact)
+    
     plot_metrics(metrics, class_labels, train_counts, test_counts)
 
 

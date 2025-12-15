@@ -27,7 +27,7 @@ preprocess:
 
 .PHONY: train
 train:
-	@if [ -z "${path}" ]; then \
+	@if [ -z "${data_path}" ]; then \
         echo "Error: path variable is undefined - please specify as make tests path=<path>"; \
         exit 1; \
     fi
