@@ -9,7 +9,7 @@ from ukhra_data import load_combined_ukhra_datasets
 
 current_dir = Path(__file__).parent
 
-with open(current_dir / 'transforms' / 'reference.json', 'rt') as ref_file:
+with open(current_dir / 'transforms' / 'references.json', 'rt') as ref_file:
     text_abstract_refs = json.load(ref_file)
 
 with open(current_dir / 'transforms' / 'hc_mapping.json', 'rt') as hc_map_file:
@@ -92,7 +92,7 @@ def clean_text_column(df, col, text_type):
 
     removal_chars = string.punctuation + string.whitespace
     df[col] = df[col].str.lstrip(removal_chars)
-    df[col] = df[col].str.split().str.join("")
+    df[col] = df[col].str.split().str.join(" ")
     df[col] = df[col].str.strip()
 
     return df
