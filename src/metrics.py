@@ -116,7 +116,7 @@ def calculate_metrics(labels, predictions, prefix=""):
     }
 
 
-def prepare_compute_metrics(config):
+def prepare_compute_metrics(config, meta_path: str | None = None):
     """Wrapper for compute_metrics so config can be accessed
 
     Args: config (dict): Configuration dictionary from yaml file.
@@ -175,19 +175,55 @@ def prepare_compute_metrics(config):
         
         # Parent category metrics
         try:
-            # Load detailed label names to extract parent categories
             detailed_label_names = load_label_names("data/label_names", "long")
-            parent_predictions, parent_labels = get_parent_categories(predictions, labels, detailed_label_names)
-            
-            # Calculate parent-level metrics
-            parent_metrics = calculate_metrics(parent_labels, parent_predictions, prefix="parent_")
-            
-            # Combine all metrics
+            parent_predictions, parent_labels = get_parent_categories(
+                predictions, labels, detailed_label_names
+            )
+            parent_metrics = calculate_metrics(
+                parent_labels, parent_predictions, prefix="parent_"
+            )
             all_metrics = {**detailed_metrics, **parent_metrics}
-            
         except Exception as e:
             print(f"Warning: Could not calculate parent metrics: {e}")
             all_metrics = detailed_metrics
+
+        # Optional: Wellcome Trust filtered metrics using meta_path directory
+        try:
+            if not meta_path:
+                print("Info: No meta_path provided; skipping Wellcome metrics.")
+                wandb.log({"wellcome_metrics_status": "no_meta_path_provided"})
+            else:
+                test_meta_path = os.path.join(meta_path, "test_meta.parquet")
+                if not os.path.exists(test_meta_path):
+                    print("Info: test_meta.parquet not found. Run train_test_split.py to generate metadata.")
+                    wandb.log({"wellcome_metrics_status": "meta_not_found"})
+                else:
+                    meta_df = pd.read_parquet(test_meta_path)
+                    if "FundingOrganisation" not in meta_df.columns:
+                        print("Info: FundingOrganisation column missing in meta; skipping Wellcome metrics.")
+                        wandb.log({"wellcome_metrics_status": "funding_org_missing"})
+                    elif len(meta_df) != labels.shape[0]:
+                        print("Info: test_meta length does not match eval set; skipping Wellcome metrics.")
+                        wandb.log({"wellcome_metrics_status": "length_mismatch"})
+                    else:
+                        fo_mask = meta_df["FundingOrganisation"].astype(str).eq("Wellcome Trust").to_numpy()
+                        if fo_mask.any():
+                            labels_wt = labels[fo_mask]
+                            predictions_wt = predictions[fo_mask]
+                            wt_detailed = calculate_metrics(labels_wt, predictions_wt, prefix="wellcome_")
+                            parent_pred_wt, parent_labels_wt = get_parent_categories(
+                                predictions_wt, labels_wt, detailed_label_names
+                            )
+                            wt_parent = calculate_metrics(
+                                parent_labels_wt, parent_pred_wt, prefix="parent_wellcome_"
+                            )
+                            all_metrics.update({**wt_detailed, **wt_parent})
+                            wandb.log({"wellcome_metrics_status": "computed"})
+                        else:
+                            print("Info: No rows for FundingOrganisation == 'Wellcome Trust' in eval set")
+                            wandb.log({"wellcome_metrics_status": "no_wellcome_rows"})
+        except Exception as e:
+            print(f"Warning: Could not compute Wellcome Trust filtered metrics: {e}")
         
         wandb.log({"metrics": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in all_metrics.items()}})
         return all_metrics

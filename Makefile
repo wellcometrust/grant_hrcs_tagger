@@ -18,9 +18,9 @@ download_data:
 build_dataset:
 	uv run src/data_processing/data_processing.py
 
-.PHONY: preprocess
-preprocess:
-	uv run src/preprocess.py \
+.PHONY: train_test_split
+train_test_split:
+	uv run src/train_test_split.py \
 		"config/train_config.yaml" \
 		"data/clean/clean.parquet" \
 		"data/preprocessed"
