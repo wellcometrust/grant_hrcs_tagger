@@ -148,7 +148,9 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         logging_strategy=config["training_settings"]["logging_strategy"],
     )
 
-    compute_metrics = prepare_compute_metrics(config)
+    # Provide meta_path (directory holding train_meta/test_meta) to metrics
+    meta_path = os.path.dirname(args.test_path)
+    compute_metrics = prepare_compute_metrics(config, meta_path)
     # initialize trainer depending on class weighting option
     if class_weighting:
         total_count = sum(class_counts)
