@@ -245,7 +245,7 @@ def run_training(args):
         config=config,
         class_counts=train_counts,
         class_weighting=class_weighting,
-        label_names_path=args.label_names_dir,
+        label_names_dir=args.label_names_dir,
     )
 
     plot_metrics(metrics, class_labels, train_counts, test_counts)
