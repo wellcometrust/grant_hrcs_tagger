@@ -104,7 +104,7 @@ class HRCSDataset(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_path):
+def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_dir):
     """Finetune a model from the config for the UKHRA data.
 
     Args:
@@ -114,7 +114,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         config (dict): Configuration dictionary.
         class_counts (list): List of class counts for training data.
         class_weighting (bool): Whether to use class weighting.
-        label_names_path (str): Path to the label names file.
+        label_names_dir (str): Directory containing label names files.
 
     Returns:
         dict: Evaluation metrics.
@@ -143,7 +143,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     log_to_wandb({"num_labels": num_labels}, config["training_settings"]["report_to"])
 
     # fetch label names 
-    label_names = load_label_names(label_names_path)
+    label_names = load_label_names(label_names_dir, "long")
 
     # initialize model
     model = get_model(
@@ -252,7 +252,7 @@ def run_training(args):
     train_data = pd.read_parquet(args.train_path)
     test_data = pd.read_parquet(args.test_path)
 
-    class_labels_dict = load_label_names(args.label_names_path)
+    class_labels_dict = load_label_names(args.label_names_dir, "long")
     class_labels = [label for label in class_labels_dict.values()]
     print(f"class labels: {class_labels}")
     train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
@@ -274,7 +274,7 @@ def run_training(args):
         config=config,
         class_counts=train_counts,
         class_weighting=class_weighting,
-        label_names_path=args.label_names_path,
+        label_names_path=args.label_names_dir,
     )
 
     # save artifacts to wandb
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     parser.add_argument("--train-path", type=str, default=f"{dp}/train.parquet")
     parser.add_argument("--test-path", type=str, default=f"{dp}/test.parquet")
     parser.add_argument(
-        "--label-names-path", type=str, default="data/label_names/ukhra_ra.jsonl"
+        "--label-names-dir", type=str, default="data/label_names/"
     )
     parser.add_argument("--model-dir", type=str, default="data/model")
     args = parser.parse_args()
