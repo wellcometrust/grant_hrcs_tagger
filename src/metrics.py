@@ -32,13 +32,14 @@ def load_label_names(label_names_dir, label_type="long"):
     
     return label_names
 
-def get_parent_categories(predictions, labels, detailed_label_names):
+def get_parent_categories(predictions, labels, detailed_label_names, parent_level="parent"):
     """Extract parent category predictions and labels from detailed predictions.
     
     Args:
         predictions (np.array): Detailed level predictions
         labels (np.array): Detailed level labels  
         detailed_label_names (dict): Mapping of detailed label indices to names
+        parent_level (str): "parent" for 8 categories, "super_parent" for 3 categories
         
     Returns:
         tuple: (parent_predictions, parent_labels) as np.arrays
@@ -53,23 +54,38 @@ def get_parent_categories(predictions, labels, detailed_label_names):
             # Handle any labels that don't follow the expected format
             label_to_parent[idx] = 0
     
-    # Convert to parent category predictions (8 categories)
     num_samples = predictions.shape[0]
-    parent_predictions = np.zeros((num_samples, 8))
-    parent_labels = np.zeros((num_samples, 8))
+    # Convert to parent category predictions (8 categories)
+    if parent_level == "super_parent":
+        num_parent_cats = 3
+    else:
+        num_parent_cats = 8
+    parent_predictions = np.zeros((num_samples, num_parent_cats))
+    parent_labels = np.zeros((num_samples, num_parent_cats))
     
     for sample_idx in range(num_samples):
         for label_idx in range(predictions.shape[1]):
             parent_cat = label_to_parent.get(label_idx, 0)
-            if 1 <= parent_cat <= 8:
-                parent_idx = parent_cat - 1  # Convert to 0-based indexing
+            if parent_level == "parent" and parent_cat > 0:
+                idx = parent_cat - 1  # Convert to 0-based indexing
                 
-                # If any detailed label in this parent category is predicted/true, 
-                # mark the parent category as predicted/true
-                if predictions[sample_idx, label_idx] == 1:
-                    parent_predictions[sample_idx, parent_idx] = 1
-                if labels[sample_idx, label_idx] == 1:
-                    parent_labels[sample_idx, parent_idx] = 1
+            elif parent_level == "super_parent":
+                # Map parent categories to super parent categories
+                if parent_cat in [1, 2, 3]:  # Super Parent 1
+                    idx = 0
+                elif parent_cat in [4, 5]:  # Super Parent 2
+                    idx = 1
+                elif parent_cat in [6, 7, 8]:  # Super Parent 3
+                    idx = 2
+                else:
+                    continue  # Skip if no valid parent category
+            else:
+                continue  # Skip if no valid parent category
+
+            if predictions[sample_idx, label_idx] == 1:
+                parent_predictions[sample_idx, idx] = 1
+            if labels[sample_idx, label_idx] == 1:
+                parent_labels[sample_idx, idx] = 1
     
     return parent_predictions, parent_labels
 
@@ -79,32 +95,38 @@ def calculate_metrics(labels, predictions, prefix=""):
     Args:
         labels (np.array): True labels
         predictions (np.array): Predicted labels
-        prefix (str): Prefix to add to metric names (e.g., "parent_")
-        label_names (dict): Mapping of label indices to label names
+        prefix (str): Prefix to add to metric names (e.g., "parent_", "parent_wellcome_", "super_parent_*")
     Returns:
-        dict: Dictionary of calculated metrics
+        dict: Dictionary of calculated metrics (arrays) plus per-class F1 entries.
     """
-    if prefix == "parent_":
+    # Choose label mapping based on prefix family
+    if prefix.startswith("parent_"):
         label_names = load_label_names("data/label_names", "short")
+    elif prefix.startswith("super_parent_"):
+        label_names = load_label_names("data/label_names", "tiny")
     else:
         label_names = load_label_names("data/label_names", "long")
 
     f1_macro = f1_score(labels, predictions, average="macro")
     f1_micro = f1_score(labels, predictions, average="micro")
-    f1 = f1_score(labels, predictions, average=None)
+    f1_per_class = f1_score(labels, predictions, average=None)
     precision = precision_score(labels, predictions, average=None)
     recall = recall_score(labels, predictions, average=None)
 
-    # Log per-class metrics as dictionary
+    # Guard against length mismatches between mapping and predictions
+    n_classes = predictions.shape[1]
+    indexed_len = min(n_classes, len(label_names))
+
+    # Per-class F1 entries with readable label names
     per_class_metrics = {
-        f"{prefix}f1_{label_names[idx]}": f1_score(labels, predictions, average=None)[idx]
-        for idx in range(len(label_names))
+        f"{prefix}f1_{label_names[idx]}": float(f1_per_class[idx])
+        for idx in range(indexed_len)
     }
 
     return {
-        f"{prefix}f1": f1,
-        f"{prefix}f1_macro": f1_macro,
-        f"{prefix}f1_micro": f1_micro,
+        f"{prefix}f1": f1_per_class,
+        f"{prefix}f1_macro": float(f1_macro),
+        f"{prefix}f1_micro": float(f1_micro),
         f"{prefix}precision": precision,
         f"{prefix}recall": recall,
         **per_class_metrics,
@@ -205,14 +227,25 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
                         if wt_mask.any():
                             labels_wt = labels[wt_mask]
                             predictions_wt = predictions[wt_mask]
+                            # low level detailed metrics for Wellcome Trust filtered rows
                             wt_detailed = calculate_metrics(labels_wt, predictions_wt, prefix="wellcome_")
+
+                            # parent level metrics for Wellcome Trust filtered rows
                             parent_pred_wt, parent_labels_wt = get_parent_categories(
                                 predictions_wt, labels_wt, detailed_label_names
                             )
                             wt_parent = calculate_metrics(
                                 parent_labels_wt, parent_pred_wt, prefix="parent_wellcome_"
                             )
-                            all_metrics.update({**wt_detailed, **wt_parent})
+
+                            # super parent level metrics for Wellcome Trust filtered rows
+                            super_parent_pred_wt, super_parent_labels_wt = get_parent_categories(
+                                predictions_wt, labels_wt, detailed_label_names 
+                            )
+                            wt_super_parent = calculate_metrics(
+                                super_parent_labels_wt, super_parent_pred_wt, prefix="super_parent_wellcome_"
+                            )
+                            all_metrics.update({**wt_detailed, **wt_parent, **wt_super_parent})
                             wandb.log({"wellcome_metrics_status": "computed"})
                         else:
                             print("Info: No rows for FundingOrganisation == 'Wellcome Trust' in eval set")
