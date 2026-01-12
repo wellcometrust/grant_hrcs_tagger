@@ -21,33 +21,16 @@ def load_label_names(label_names_dir, label_type="long"):
         filepath = os.path.join(label_names_dir, "label_mapping_long.json")
     elif label_type == "short":
         filepath = os.path.join(label_names_dir, "label_mapping_short.json")
+    elif label_type == "tiny":
+        filepath = os.path.join(label_names_dir, "label_mapping_tiny.json")
     else:
-        raise ValueError("label_type must be 'long' or 'short'")
+        raise ValueError("label_type must be 'long', 'short', or 'tiny'")
         
     with open(filepath) as f:
         data = json.load(f)
         label_names = {idx: name for idx, name in enumerate(data.values())}
     
     return label_names
-
-
-def load_parent_label_mapping():
-    """Load parent label mapping from JSON file.
-    
-    Returns:
-        dict: Dictionary mapping parent category numbers to names.
-    """
-    try:
-        parent_mapping = load_label_names("data/label_names", "short")
-        # Extract just the parent number to name mapping
-        parent_labels = {}
-        for _, label_value in parent_mapping.items():
-            parent_num = int(label_value.split(":")[0])
-            parent_labels[parent_num] = label_value
-        return parent_labels
-    except FileNotFoundError:
-        return {}
-
 
 def get_parent_categories(predictions, labels, detailed_label_names):
     """Extract parent category predictions and labels from detailed predictions.
@@ -97,22 +80,34 @@ def calculate_metrics(labels, predictions, prefix=""):
         labels (np.array): True labels
         predictions (np.array): Predicted labels
         prefix (str): Prefix to add to metric names (e.g., "parent_")
-        
+        label_names (dict): Mapping of label indices to label names
     Returns:
         dict: Dictionary of calculated metrics
     """
+    if prefix == "parent_":
+        label_names = load_label_names("data/label_names", "short")
+    else:
+        label_names = load_label_names("data/label_names", "long")
+
     f1_macro = f1_score(labels, predictions, average="macro")
     f1_micro = f1_score(labels, predictions, average="micro")
     f1 = f1_score(labels, predictions, average=None)
     precision = precision_score(labels, predictions, average=None)
     recall = recall_score(labels, predictions, average=None)
-    
+
+    # Log per-class metrics as dictionary
+    per_class_metrics = {
+        f"{prefix}f1_{label_names[idx]}": f1_score(labels, predictions, average=None)[idx]
+        for idx in range(len(label_names))
+    }
+
     return {
         f"{prefix}f1": f1,
         f"{prefix}f1_macro": f1_macro,
         f"{prefix}f1_micro": f1_micro,
         f"{prefix}precision": precision,
         f"{prefix}recall": recall,
+        **per_class_metrics,
     }
 
 
@@ -206,10 +201,10 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
                         print("Info: test_meta length does not match eval set; skipping Wellcome metrics.")
                         wandb.log({"wellcome_metrics_status": "length_mismatch"})
                     else:
-                        fo_mask = meta_df["FundingOrganisation"].astype(str).eq("Wellcome Trust").to_numpy()
-                        if fo_mask.any():
-                            labels_wt = labels[fo_mask]
-                            predictions_wt = predictions[fo_mask]
+                        wt_mask = meta_df["FundingOrganisation"].astype(str).eq("Wellcome Trust").to_numpy()
+                        if wt_mask.any():
+                            labels_wt = labels[wt_mask]
+                            predictions_wt = predictions[wt_mask]
                             wt_detailed = calculate_metrics(labels_wt, predictions_wt, prefix="wellcome_")
                             parent_pred_wt, parent_labels_wt = get_parent_categories(
                                 predictions_wt, labels_wt, detailed_label_names
@@ -225,7 +220,6 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
         except Exception as e:
             print(f"Warning: Could not compute Wellcome Trust filtered metrics: {e}")
         
-        wandb.log({"metrics": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in all_metrics.items()}})
         return all_metrics
 
     return compute_metrics
