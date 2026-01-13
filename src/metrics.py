@@ -106,10 +106,15 @@ def calculate_metrics(labels, predictions, prefix=""):
         label_names = load_label_names("data/label_names", "tiny")
     else:
         label_names = load_label_names("data/label_names", "long")
+    label_names = list(label_names.values())
 
     f1_macro = f1_score(labels, predictions, average="macro")
     f1_micro = f1_score(labels, predictions, average="micro")
     f1_per_class = f1_score(labels, predictions, average=None)
+    precision_macro = precision_score(labels, predictions, average="macro")
+    precision_micro = precision_score(labels, predictions, average="micro")
+    recall_macro = recall_score(labels, predictions, average="macro")
+    recall_micro = recall_score(labels, predictions, average="micro")
     precision = precision_score(labels, predictions, average=None)
     recall = recall_score(labels, predictions, average=None)
 
@@ -117,18 +122,55 @@ def calculate_metrics(labels, predictions, prefix=""):
     n_classes = predictions.shape[1]
     indexed_len = min(n_classes, len(label_names))
 
-    # Per-class F1 entries with readable label names
+    # Per-class entries with readable label names (grouped for W&B)
     per_class_metrics = {
-        f"{prefix}f1_{label_names[idx]}": float(f1_per_class[idx])
+        # F1 per class
+        f"{prefix}f1/{label_names[idx]}": float(f1_per_class[idx])
+        for idx in range(indexed_len)
+    } | {
+        # Precision per class
+        f"{prefix}precision/{label_names[idx]}": float(precision[idx])
+        for idx in range(indexed_len)
+    } | {
+        # Recall per class
+        f"{prefix}recall/{label_names[idx]}": float(recall[idx])
         for idx in range(indexed_len)
     }
 
+    table = wandb.Table(
+        columns=["prefix", "precision_macro", "precision_micro", "recall_macro", "recall_micro", "f1_macro", "f1_micro", "train_count", "test_count"],
+        data=[[prefix,  
+                float(precision_macro),
+                float(precision_micro),
+                float(recall_macro),
+                float(recall_micro),
+                float(f1_macro),
+                float(f1_micro),
+                int(np.sum(labels[:, 0])),
+                int(np.sum(predictions[:, 0])),
+            ]]
+    )
+
+    table_per_class = wandb.Table(
+        columns=["label", "f1", "precision", "recall"],
+        data=[
+            [label_names[idx], 
+             float(f1_per_class[idx]), 
+             float(precision[idx]), 
+             float(recall[idx])]
+            for idx in range(indexed_len)
+        ]
+    )
+    wandb.log({f"{prefix}per_class_metrics": table_per_class})
+    wandb.log({f"{prefix}metrics and value_count table": table})
+
     return {
-        f"{prefix}f1": f1_per_class,
         f"{prefix}f1_macro": float(f1_macro),
         f"{prefix}f1_micro": float(f1_micro),
-        f"{prefix}precision": precision,
-        f"{prefix}recall": recall,
+        f"{prefix}precision_macro": float(precision_macro),
+        f"{prefix}precision_micro": float(precision_micro),
+        f"{prefix}recall_macro": float(recall_macro),
+        f"{prefix}recall_micro": float(recall_micro),
         **per_class_metrics,
     }
 
@@ -199,7 +241,14 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
             parent_metrics = calculate_metrics(
                 parent_labels, parent_predictions, prefix="parent_"
             )
-            all_metrics = {**detailed_metrics, **parent_metrics}
+            # Super parent metrics (3 categories) for full eval set
+            super_parent_predictions, super_parent_labels = get_parent_categories(
+                predictions, labels, detailed_label_names, parent_level="super_parent"
+            )
+            super_parent_metrics = calculate_metrics(
+                super_parent_labels, super_parent_predictions, prefix="super_parent_"
+            )
+            all_metrics = {**detailed_metrics, **parent_metrics, **super_parent_metrics}
         except Exception as e:
             print(f"Warning: Could not calculate parent metrics: {e}")
             all_metrics = detailed_metrics
@@ -240,7 +289,7 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
 
                             # super parent level metrics for Wellcome Trust filtered rows
                             super_parent_pred_wt, super_parent_labels_wt = get_parent_categories(
-                                predictions_wt, labels_wt, detailed_label_names 
+                                predictions_wt, labels_wt, detailed_label_names, parent_level="super_parent"
                             )
                             wt_super_parent = calculate_metrics(
                                 super_parent_labels_wt, super_parent_pred_wt, prefix="super_parent_wellcome_"
@@ -257,34 +306,3 @@ def prepare_compute_metrics(config, meta_path: str | None = None):
 
     return compute_metrics
 
-def plot_metrics(metrics, class_labels, train_counts, test_counts):
-    """Plot evaluation metrics and value counts in wandb
-
-    Args:
-        metrics (dict): Evaluation metrics.
-        class_labels (list): List of class labels.
-        train_counts (list): List of class counts for train dataset.
-        test_counts (list): List of class counts for test dataset.
-
-    """
-
-    f1 = metrics["eval_f1"]
-    precision = metrics["eval_precision"]
-    recall = metrics["eval_recall"]
-    data = zip(
-        class_labels, precision, recall, f1, train_counts, test_counts, strict=False
-    )
-
-    # print data as a dataframe to console
-    df = pd.DataFrame(
-        data,
-        columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
-    )
-    print(df)
-
-    table = wandb.Table(
-        data=[list(values) for values in data],
-        columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
-    )
-
-    wandb.log({"metrics and value_count table": table})

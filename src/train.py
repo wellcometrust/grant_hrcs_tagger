@@ -17,7 +17,7 @@ from transformers import (
 
 import wandb
 from utils import load_yaml_config
-from metrics import prepare_compute_metrics, plot_metrics, load_label_names
+from metrics import prepare_compute_metrics, load_label_names
 
 
 def init_wandb(project_name, config_settings, report_to):
@@ -278,18 +278,6 @@ def run_training(args):
         class_weighting=class_weighting,
         label_names_dir=args.label_names_dir,
     )
-
-    # save artifacts to wandb
-    if config["training_settings"]["report_to"] == "wandb":
-        artifact = wandb.Artifact(
-            name=f"{model_name}_{timestamp}",
-            type="model",
-            description=f"Finetuned HRCS tagger model on {timestamp}",
-        )
-        artifact.add_dir(model_path)
-        wandb.log_artifact(artifact)
-    
-    plot_metrics(metrics, class_labels, train_counts, test_counts, config)
 
 
 if __name__ == "__main__":
