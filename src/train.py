@@ -17,7 +17,7 @@ from transformers import (
 
 import wandb
 from utils import load_yaml_config
-from metrics import prepare_compute_metrics, plot_metrics, load_label_names
+from metrics import prepare_compute_metrics, load_label_names
 
 def init_device():
     """Initialize device to use for training.
@@ -249,9 +249,6 @@ def run_training(args):
         class_weighting=class_weighting,
         label_names_dir=args.label_names_dir,
     )
-
-    plot_metrics(metrics, class_labels, train_counts, test_counts)
-
 
 if __name__ == "__main__":
     # parse arguments
