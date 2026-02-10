@@ -12,7 +12,8 @@ training_settings:
   weight_decay: 0.01                  
   report_to: "wandb"
   logging_strategy: "epoch"
-  save_strategy: "epoch"
+  save_strategy: "no"
+  eval_strategy: "epoch"
   save_total_limit: 1
   class_weighting: False # if True a custom loss function will be used which aims to deal with label imbalance
   output_weighting: False # if True custom thresholds will be set for the logits if False threshold = 0.5 for all
