@@ -1,9 +1,22 @@
 # Grant HRCS Tagging Model
-Machine learning classifier model for tagging research grants with HRCS Health Category and Research Activity Code tags based on title and grant abstract.
+
+A machine learning model for tagging research grants with [HRCS (Health Research Classification System)](https://hrcsonline.net/) tags based on title and abstract text:
+
+- **Research Activity Codes (RAC)** - categorising the type of research activity
+- **Health Categories (HC)** - categorising the health area of the research
 
 Developed by the Machine Learning team, within Data & Digital at [the Wellcome Trust](https://wellcome.org/).
 
-### Data
+---
+
+## Quick Start
+
+- **Just want to tag grants?** → See [Inference](#inference)
+- **Want to train your own model?** → See [Training](#training)
+
+---
+
+## Data Acknowledgement
 Acknowledgment, for training and evaluation of our model we used the following datasets:
 * UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online: https://hrcsonline.net/. E.g. the 2022 report data can be found here: https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
 * NIHR tagged awards dataset: https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
@@ -31,10 +44,55 @@ Acknowledgment, for training and evaluation of our model we used the following d
 └── test/                   # Test suite
 ```
 
-## To use the latest model for tagging
-[instructions to be added on how to download and use the latest trained model via Huggingface]
+---
 
-## To set up the project for training and development
+## Inference
+
+Use the trained model to tag grants with HRCS codes. Choose the approach that fits your use case:
+
+### Using a Hugging Face Hosted Model
+
+The easiest way to get started is using our pre-trained model hosted on Hugging Face:
+
+```python
+from transformers import pipeline
+
+# Load the model from Hugging Face Hub
+classifier = pipeline(
+    "text-classification",
+    model="wellcometrust/grant-hrcs-tagger",  # TODO: Update with actual model path
+    top_k=None
+)
+
+# Predict HRCS tags
+result = classifier("Your grant title and abstract text here")
+print(result)
+```
+
+> **Note:** The Hugging Face model URL will be updated once the model is published.
+
+### Using a Local Model
+
+If you have trained your own model or downloaded one locally, use the inference functions in `src/inference.py`:
+
+```python
+from src.inference import model_fn, predict_fn
+
+# Load model from local directory
+model_dict = model_fn("data/model/")
+
+# Predict
+result = predict_fn({"inputs": "Grant title and abstract text here"}, model_dict)
+print(result)
+```
+
+The inference pipeline applies ranked thresholds (configurable in the training config) to convert logits to multi-label predictions.
+
+---
+
+## Training
+
+This section is for users who want to fine-tune their own HRCS tagging model.
 
 ### Platform Requirements
 
@@ -42,9 +100,9 @@ This project uses a Makefile with bash commands, which run natively on **Linux**
 
 **Windows users:** We recommend using [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and following the Linux instructions. Makefiles are not supported natively on Windows without third-party tools, and the bash commands in the Makefile only run on Unix-like systems.
 
-### 1. Install uv
+### Installing uv
 
-First, install uv, a fast Python package manager. You can install it using:
+First, install uv, a fast Python package manager:
 
 ```shell
 # On macOS and Linux
@@ -59,7 +117,7 @@ pip install uv
 
 For more installation options, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-### 2. Environment set up
+### Environment Setup
 
 Set up the project environment using uv, which will read from the `pyproject.toml` file:
 
@@ -76,32 +134,22 @@ uv run a_python_script.py
 
 To make things even easier, we use the following `make` commands to run common tasks.
 
-### 4. Make commands
+### Make Commands
 
-The project includes several `make` commands to streamline common tasks: 
-**Note:** it is best to run these 
+The project includes several `make` commands to streamline common tasks:
 
-```
-# Download raw datasets from HRCS online and NIHR
-make download_data
-```
-This make command assumes `wget` is installed, which on a Mac you will have to install first, `brew install wget`.
-```
-# Process and clean the downloaded data into parquet files
-make build_dataset
+| Command | Description |
+|---------|-------------|
+| `make download_data` | Download raw datasets from HRCS online and NIHR |
+| `make build_dataset` | Process and clean the downloaded data into parquet files |
+| `make preprocess` | Preprocess data for training (splits into train/test sets) |
+| `make train_ra` | Train Research Activity model |
+| `make train_ra_top` | Train Research Activity (top level) model |
+| `make help` | See all available commands |
 
-# Preprocess data for training (splits into train/test sets)
-make preprocess
+> **Note:** The `download_data` command requires `wget`. On macOS, install with `brew install wget`.
 
-# Train models for different tag types:
-make train_ra      # Train Research Activity model
-make train_ra_top  # Train Research Activity (top level) model  
-
-# See all available commands
-make help
-```
-
-### 5. Fine-tune the model
+### Fine-tuning the Model
 
 To train your own HRCS tagging model, you'll need:
 
@@ -144,21 +192,7 @@ The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If 
 
 Trained models are saved to `data/model/` and can be used for inference on new grants.
 
-## Inference
-
-The trained model can be loaded for inference using the functions in `src/inference.py`:
-
-```python
-from src.inference import model_fn, predict_fn
-
-# Load model
-model_dict = model_fn("data/model/")
-
-# Predict
-result = predict_fn({"inputs": "Grant title and abstract text here"}, model_dict)
-```
-
-The inference pipeline applies ranked thresholds (configurable in the training config) to convert logits to multi-label predictions.
+---
 
 ## Deployment
 
@@ -175,6 +209,8 @@ endpoint_args:
 ```
 
 See `src/deploy.py` for deployment utilities and `notebooks/deploy.ipynb` for an interactive deployment workflow.
+
+---
 
 ## Testing
 
