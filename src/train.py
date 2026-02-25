@@ -339,15 +339,13 @@ def plot_metrics(metrics, class_labels, train_counts, test_counts, config):
         class_labels, precision, recall, f1, train_counts, test_counts, strict=False
     )
 
+    # print logging metrics table to terminal
+    print("Metrics and value counts:")
+    for values in data:
+        print(values)
+
     # Only proceed if wandb reporting is enabled
-    if config["training_settings"]["report_to"] != "wandb":
-        # print logging metrics table to terminal
-        print("Metrics and value counts:")
-        for values in data:
-            print(values)
-        return
-    
-    else:
+    if config["training_settings"]["report_to"] == "wandb":
         table = wandb.Table(
             data=[list(values) for values in data],
             columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
