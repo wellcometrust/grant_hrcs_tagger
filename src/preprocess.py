@@ -83,7 +83,7 @@ def processing_pipeline(config, clean_data, output_dir):
     for category in ["RA", "RA_top", "HC"]:
         data = pd.read_parquet(clean_data)
 
-        if not config["preprocess_settings"]["cased"]:
+        if config["preprocess_settings"]["cased"]:
             data["AllText"] = data["AllText"].str.lower()
 
         train, test = split_data_frame(

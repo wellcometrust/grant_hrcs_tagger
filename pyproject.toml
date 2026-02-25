@@ -8,19 +8,19 @@ dependencies = [
     "akin==1.0.1",
     "click>=8.1.8",
     "datasketch>=1.6.5",
-    "flash-attn==2.7.4.post1",
+    "flash-attn==2.7.4.post1; sys_platform == 'linux'",
     "jupyterlab>=4.3.5",
     "mmh3>=5.1.0",
     "numpy==1.26.4",
     "openpyxl>=3.1.5",
     "pandas>=2.2.3",
     "pillow>=11.3.0",
-    "protobuf==4.25.8",
+    "protobuf==5.29.6",
     "pyarrow>=19.0.1",
     "python-dotenv>=1.1.0",
     "rich>=13.9.4",
     "ruff>=0.11.12",
-    "sagemaker==2.244.2",
+    "sagemaker==2.256.0",
     "scikit-learn>=1.6.1",
     "scikit-multilearn>=0.2.0",
     "torch>=2.6.0",
@@ -53,7 +53,12 @@ ignore = ["D100", "D104", "E501"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.uv.sources]
+wtdbc = { git = "https://github.com/wellcometrust/wtdbc.git" }
+
 [dependency-groups]
 dev = [
+    "dotenv>=0.9.9",
     "ipykernel>=6.29.5",
+    "wtdbc",
 ]
