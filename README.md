@@ -8,10 +8,39 @@ Acknowledgment, for training and evaluation of our model we used the following d
 * UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online: https://hrcsonline.net/. E.g. the 2022 report data can be found here: https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
 * NIHR tagged awards dataset: https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
 
+## Project Structure
+
+```
+├── config/                 # Configuration files
+│   ├── train_config.yaml   # Training hyperparameters and settings
+│   └── deploy_config.yaml  # Deployment configuration
+├── data/                   # Data directory
+│   ├── raw/                # Raw downloaded data
+│   ├── clean/              # Cleaned parquet files
+│   ├── preprocessed/       # Train/test splits
+│   ├── label_names/        # Label name mappings
+│   └── model/              # Trained model outputs
+├── src/                    # Source code
+│   ├── data_processing/    # Data processing scripts
+│   ├── train.py            # Model training script
+│   ├── train_test_split.py # Data splitting utilities
+│   ├── inference.py        # Inference functions
+│   ├── deploy.py           # SageMaker deployment
+│   └── metrics.py          # Evaluation metrics
+├── notebooks/              # Jupyter notebooks for exploration
+└── test/                   # Test suite
+```
+
 ## To use the latest model for tagging
 [instructions to be added on how to download and use the latest trained model via Huggingface]
 
 ## To set up the project for training and development
+
+### Platform Requirements
+
+This project uses a Makefile with bash commands, which run natively on **Linux** and **macOS**.
+
+**Windows users:** We recommend using [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and following the Linux instructions. Makefiles are not supported natively on Windows without third-party tools, and the bash commands in the Makefile only run on Unix-like systems.
 
 ### 1. Install uv
 
@@ -115,4 +144,42 @@ The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If 
 
 Trained models are saved to `data/model/` and can be used for inference on new grants.
 
+## Inference
 
+The trained model can be loaded for inference using the functions in `src/inference.py`:
+
+```python
+from src.inference import model_fn, predict_fn
+
+# Load model
+model_dict = model_fn("data/model/")
+
+# Predict
+result = predict_fn({"inputs": "Grant title and abstract text here"}, model_dict)
+```
+
+The inference pipeline applies ranked thresholds (configurable in the training config) to convert logits to multi-label predictions.
+
+## Deployment
+
+Models can be deployed to AWS SageMaker. Configuration is managed in `config/deploy_config.yaml`:
+
+```yaml
+model_args:
+  transformers_version: "4.49.0"
+  pytorch_version: "2.6.0"
+  py_version: "py312"
+
+endpoint_args:
+  instance_type: "ml.m5.xlarge"
+```
+
+See `src/deploy.py` for deployment utilities and `notebooks/deploy.ipynb` for an interactive deployment workflow.
+
+## Testing
+
+Run the test suite:
+
+```shell
+pytest test/
+```
