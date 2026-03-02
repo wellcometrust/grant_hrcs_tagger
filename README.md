@@ -1,32 +1,221 @@
 # Grant HRCS Tagging Model
-Machine learning classifier model for tagging research grants with HRCS Health Category and Research Activity Code tags based on title and grant abstract.
 
-Developed by the Machine Learning team, within Data & Digital at the Wellcome Trust.
+A machine learning model for tagging research grants with [HRCS (Health Research Classification System)](https://hrcsonline.net/) tags based on title and abstract text:
 
-### Data
-Aknowledgement, the data used for this project was compiled as part of the UK Health Research Analysis studies: UK Health Research Analysis 2022 (UK Clinical Research Collaboration , 2023) https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
+- **Research Activity Codes (RAC)** - categorising the type of research activity
+- **Health Categories (HC)** - categorising the health area of the research
 
-## Set up
+Developed by the Machine Learning team, within Data & Digital at [the Wellcome Trust](https://wellcome.org/).
 
-### 1. Environment set up
+---
 
-Start with setting up the virtual environment for this project. Make sure you have conda installed as we will use it as an environment manager. [If conda is not installed, installing miniconda is a good starting point](https://docs.anaconda.com/miniconda/install/#quick-command-line-install)
+## Quick Start
 
-:green_apple: On Mac M1 `conda env create -f environment_mac.yml` 
-:penguin: On Linux `conda env create -f environment.yml` 
+- **Just want to tag grants?** → See [Inference](#inference)
+- **Want to train your own model?** → See [Training](#training)
 
-The environment can be activates with `conda activate hrcs_tagger`
+---
 
-### 2. Downloading the dataset
+## Data Acknowledgement
+Acknowledgment, for training and evaluation of our model we used the following datasets:
+* UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online: https://hrcsonline.net/. E.g. the 2022 report data can be found here: https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
+* NIHR tagged awards dataset: https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
 
-To Download the UK Health Research Analysis data used for training, run: 
+## Project Structure
+
+```
+├── config/                 # Configuration files
+│   ├── train_config.yaml   # Training hyperparameters and settings
+│   └── deploy_config.yaml  # Deployment configuration
+├── data/                   # Data directory
+│   ├── raw/                # Raw downloaded data
+│   ├── clean/              # Cleaned parquet files
+│   ├── preprocessed/       # Train/test splits
+│   ├── label_names/        # Label name mappings
+│   └── model/              # Trained model outputs
+├── src/                    # Source code
+│   ├── data_processing/    # Data processing scripts
+│   ├── train.py            # Model training script
+│   ├── train_test_split.py # Data splitting utilities
+│   ├── inference.py        # Inference functions
+│   ├── deploy.py           # SageMaker deployment
+│   └── metrics.py          # Evaluation metrics
+├── notebooks/              # Jupyter notebooks for exploration
+└── test/                   # Test suite
+```
+
+---
+
+## Inference
+
+Use the trained model to tag grants with HRCS codes. Choose the approach that fits your use case:
+
+### Using a Hugging Face Hosted Model
+
+The easiest way to get started is using our pre-trained model hosted on Hugging Face:
+
+```python
+from transformers import pipeline
+
+# Load the model from Hugging Face Hub
+classifier = pipeline(
+    "text-classification",
+    model="wellcometrust/grant-hrcs-tagger",  # TODO: Update with actual model path
+    top_k=None
+)
+
+# Predict HRCS tags
+result = classifier("Your grant title and abstract text here")
+print(result)
+```
+
+> **Note:** The Hugging Face model URL will be updated once the model is published.
+
+### Using a Local Model
+
+If you have trained your own model or downloaded one locally, use the inference functions in `src/inference.py`:
+
+```python
+from src.inference import model_fn, predict_fn
+
+# Load model from local directory
+model_dict = model_fn("data/model/")
+
+# Predict
+result = predict_fn({"inputs": "Grant title and abstract text here"}, model_dict)
+print(result)
+```
+
+The inference pipeline applies ranked thresholds (configurable in the training config) to convert logits to multi-label predictions.
+
+---
+
+## Training
+
+This section is for users who want to fine-tune their own HRCS tagging model.
+
+### Platform Requirements
+
+This project uses a Makefile with bash commands, which run natively on **Linux** and **macOS**.
+
+**Windows users:** We recommend using [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install) and following the Linux instructions. Makefiles are not supported natively on Windows without third-party tools, and the bash commands in the Makefile only run on Unix-like systems.
+
+### Installing uv
+
+First, install uv, a fast Python package manager:
 
 ```shell
-make build_dataset
-```
-- This command downloads the tagged Excel data from from https://hrcsonline.net/.
-- Then calls a Python script that compiles these datasets into single cleaned parquet files.
-- Each parquet file represents a tag type with one file for RAC division, RAC group and Health Category.
-- Each row represents a grant and tag combination, there can be multiple rows/tags per grant.
+# On macOS and Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-This make command assumes `wget` is installed, which on a Mac you will have to install first, `brew install wget`.
+# On Windows
+powershell -c "irm https://astral.sh/uv/install.sh | iex"
+
+# Or with pip
+pip install uv
+```
+
+For more installation options, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Environment Setup
+
+Set up the project environment using uv, which will read from the `pyproject.toml` file:
+
+```shell
+# Sync dependencies and create virtual environment
+uv sync
+```
+
+You can run python scripts directly with uv without activating the virtual environment explicitly:
+
+```shell
+uv run a_python_script.py
+```
+
+To make things even easier, we use the following `make` commands to run common tasks.
+
+### Make Commands
+
+The project includes several `make` commands to streamline common tasks:
+
+| Command | Description |
+|---------|-------------|
+| `make download_data` | Download raw datasets from HRCS online and NIHR |
+| `make build_dataset` | Process and clean the downloaded data into parquet files |
+| `make preprocess` | Preprocess data for training (splits into train/test sets) |
+| `make train_ra` | Train Research Activity model |
+| `make train_ra_top` | Train Research Activity (top level) model |
+| `make help` | See all available commands |
+
+> **Note:** The `download_data` command requires `wget`. On macOS, install with `brew install wget`.
+
+### Fine-tuning the Model
+
+To train your own HRCS tagging model, you'll need:
+
+**Hardware Requirements:**
+- A GPU is highly recommended for training. The code supports:
+  - CUDA GPUs (NVIDIA)
+  - Apple Silicon (M1/M2/M3/M4/...) via MPS
+
+**Training Steps:**
+
+1. **Download and preprocess data** (if not already done):
+```shell
+make download_data
+make build_dataset  
+make preprocess
+```
+
+2. **Configure training settings** by editing `config/train_config.yaml`:
+
+```yaml
+training_settings:
+  category: 'RA'  # Choose: "RA" (Research Activity), "RA_top" (top-level), or "HC" (Health Category)
+  model: 'answerdotai/ModernBERT-base'  # Also supports 'distilbert-base-uncased' or any model compatible with AutoModelForSequenceClassification
+  learning_rate: 0.0001
+  num_train_epochs: 3  # Increase for better performance (try 3-5)
+  per_device_train_batch_size: 16  # Reduce if you get GPU memory errors
+  class_weighting: False  # Set to True to handle label imbalance
+  output_weighting: True  # Set to True for custom prediction thresholds, we found this to slightly improve performance
+```
+
+3. **Run training**:
+```shell
+# Train Research Activity model
+make train_ra # for the low level RAC codes
+make train_ra_top  # for the top level RAC codes
+```
+
+**Monitoring with Weights & Biases:**
+The code integrates with [wandb](https://wandb.ai/) for experiment tracking. If you have a wandb account, training metrics will be automatically logged. If you don't have access to wandb, you can disable it by setting `report_to: none` in the train_config.yaml file.
+
+Trained models are saved to `data/model/` and can be used for inference on new grants.
+
+---
+
+## Deployment
+
+Models can be deployed to AWS SageMaker. Configuration is managed in `config/deploy_config.yaml`:
+
+```yaml
+model_args:
+  transformers_version: "4.49.0"
+  pytorch_version: "2.6.0"
+  py_version: "py312"
+
+endpoint_args:
+  instance_type: "ml.m5.xlarge"
+```
+
+See `src/deploy.py` for deployment utilities and `notebooks/deploy.ipynb` for an interactive deployment workflow.
+
+---
+
+## Testing
+
+Run the test suite:
+
+```shell
+pytest test/
+```
