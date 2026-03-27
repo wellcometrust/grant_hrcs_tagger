@@ -7,7 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "akin==1.0.1",
     "click>=8.1.8",
-    "datasketch>=1.6.5",
     "flash-attn==2.7.4.post1; sys_platform == 'linux'",
     "jupyterlab>=4.3.5",
     "mmh3>=5.1.0",
@@ -27,6 +26,9 @@ dependencies = [
     "transformers[torch]>=4.49.0",
     "wandb>=0.19.7",
 ]
+
+[tool.uv.config-settings]
+flash-attn = "--no-build-isolation"
 
 [tool.ruff]
 line-length = 88
@@ -52,9 +54,6 @@ ignore = ["D100", "D104", "E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.uv.sources]
-wtdbc = { git = "https://github.com/wellcometrust/wtdbc.git" }
 
 [dependency-groups]
 dev = [
