@@ -38,9 +38,7 @@ def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
 
     # Randomly shuffle dataframe and reset index; add a stable row id
     df = df.sample(frac=1, random_state=10).reset_index(drop=True)
-    df["_row_id"] = np.arange(len(df), dtype=np.int64)
-
-    # Labels (multilabel binarized)
+    df["_row_id"] = df.index.astype(np.int64)
     mlb = MultiLabelBinarizer()
     y = mlb.fit_transform(df[category])
 
@@ -65,38 +63,31 @@ def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
     test["text"] = text_test
 
     # Prepare sidecar metadata DataFrames aligned row-by-row to train/test
-    metadata_cols = [c for c in [
-        "FundingOrganisation",
-        "OrganisationReference"
-    ] if c in df.columns]
+    metadata_cols = ["FundingOrganisation"]
 
-    if metadata_cols:
-        df_meta_indexed = df.set_index("_row_id")
-        train_meta = df_meta_indexed.loc[idx_train, metadata_cols].reset_index(drop=True)
-        test_meta = df_meta_indexed.loc[idx_test, metadata_cols].reset_index(drop=True)
-    else:
-        train_meta = pd.DataFrame(index=np.arange(len(train)))
-        test_meta = pd.DataFrame(index=np.arange(len(test)))
+    df_meta_indexed = df.set_index("_row_id")
+    train_meta = df_meta_indexed.loc[idx_train, metadata_cols].reset_index(drop=True)
+    test_meta = df_meta_indexed.loc[idx_test, metadata_cols].reset_index(drop=True)
 
     return train, test, train_meta, test_meta
 
 
-def save_train_test_data(train, test, output_dir, train_meta=None, test_meta=None):
+def save_train_test_data(train, test, output_dir, train_meta, test_meta):
     """Save training and test data to disk.
 
     Args:
         train (pd.DataFrame): Training data.
         test (pd.DataFrame): Test data.
         output_dir (str): Output directory.
+        train_meta (pd.DataFrame): Training metadata.
+        test_meta (pd.DataFrame): Test metadata.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     train.to_parquet(output_dir + "/train.parquet")
     test.to_parquet(output_dir + "/test.parquet")
-    if train_meta is not None:
-        train_meta.to_parquet(output_dir + "/train_meta.parquet")
-    if test_meta is not None:
-        test_meta.to_parquet(output_dir + "/test_meta.parquet")
+    train_meta.to_parquet(output_dir + "/train_meta.parquet")
+    test_meta.to_parquet(output_dir + "/test_meta.parquet")
 
 
 @click.command()
