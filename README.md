@@ -142,7 +142,7 @@ The project includes several `make` commands to streamline common tasks:
 |---------|-------------|
 | `make download_data` | Download raw datasets from HRCS online and NIHR |
 | `make build_dataset` | Process and clean the downloaded data into parquet files |
-| `make preprocess` | Preprocess data for training (splits into train/test sets) |
+| `make train_test_split` | Split cleaned data into train/test sets for training |
 | `make train_ra` | Train Research Activity model |
 | `make train_ra_top` | Train Research Activity (top level) model |
 | `make help` | See all available commands |
@@ -164,7 +164,7 @@ To train your own HRCS tagging model, you'll need:
 ```shell
 make download_data
 make build_dataset  
-make preprocess
+make train_test_split
 ```
 
 2. **Configure training settings** by editing `config/train_config.yaml`:

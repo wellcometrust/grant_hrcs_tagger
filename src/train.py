@@ -104,7 +104,7 @@ class HRCSDataset(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_dir):
+def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_dir, meta_path):
     """Finetune a model from the config for the UKHRA data.
 
     Args:
@@ -115,6 +115,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         class_counts (list): List of class counts for training data.
         class_weighting (bool): Whether to use class weighting.
         label_names_dir (str): Directory containing label names files.
+        meta_path (str): Directory containing train/test metadata files.
 
     Returns:
         dict: Evaluation metrics.
@@ -177,7 +178,6 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     )
 
     # Provide meta_path (directory holding train_meta/test_meta) to metrics
-    meta_path = os.path.dirname(args.test_path)
     compute_metrics = prepare_compute_metrics(config, meta_path)
     # initialize trainer depending on class weighting option
     if class_weighting:
@@ -269,6 +269,7 @@ def run_training(args):
     log_to_wandb({"model_path": model_path}, config["training_settings"]["report_to"])
 
     class_weighting = config["training_settings"]["class_weighting"]
+    meta_path = os.path.dirname(args.test_path)
     metrics = train(
         train_data,
         test_data,
@@ -277,6 +278,7 @@ def run_training(args):
         class_counts=train_counts,
         class_weighting=class_weighting,
         label_names_dir=args.label_names_dir,
+        meta_path=meta_path,
     )
 
 
