@@ -18,9 +18,9 @@ download_data:
 build_dataset:
 	uv run src/data_processing/data_processing.py
 
-.PHONY: preprocess
-preprocess:
-	uv run src/preprocess.py \
+.PHONY: train_test_split
+train_test_split:
+	uv run src/train_test_split.py \
 		"config/train_config.yaml" \
 		"data/clean/clean.parquet" \
 		"data/preprocessed"
@@ -37,13 +37,13 @@ train:
 		--config-path "config/train_config.yaml" \
 		--train-path "${data_path}/train.parquet" \
 		--test-path "${data_path}/test.parquet" \
-		--label-names-path "${label_path}" \
+		--label-names-dir "data/label_names/" \
 		--model-dir "data/model/"
 
 .PHONY: train_ra
 train_ra:
-	$(MAKE) train data_path="data/preprocessed/ra" label_path="data/label_names/label_mapping_long.json"
+	$(MAKE) train data_path="data/preprocessed/ra"
 
 .PHONY: train_ra_top
 train_ra_top:
-	$(MAKE) train data_path="data/preprocessed/ra_top" label_path="data/label_names/label_mapping_short.json"
+	$(MAKE) train data_path="data/preprocessed/ra_top"

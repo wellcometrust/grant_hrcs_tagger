@@ -19,51 +19,75 @@ def load_yaml_config(yaml_path: str):
 
 
 def split_data_frame(df: pd.DataFrame, category: str, test_size=0.2):
-    """Split data into training and test sets.
+    """Split data into training and test sets and return aligned metadata.
 
     Args:
         df (pd.DataFrame): Dataframe to split.
         test_size (float): Size of the test set.
 
     Returns:
-        tuple: training and test data
+        tuple: (train_df, test_df, train_meta_df, test_meta_df)
 
+    Notes:
+        - train_df/test_df keep original schema: label columns + final 'text' column.
+        - metadata is saved separately to avoid breaking training code that
+          assumes 'text' is the last column and all prior columns are labels.
     """
+    df = df.copy()
     df.dropna(subset=category, inplace=True)
 
-    # Randomly shuffle dataframe.
-    df = df.sample(frac=1, random_state=10)
-
+    # Randomly shuffle dataframe and reset index; add a stable row id
+    df = df.sample(frac=1, random_state=10).reset_index(drop=True)
+    df["_row_id"] = df.index.astype(np.int64)
     mlb = MultiLabelBinarizer()
     y = mlb.fit_transform(df[category])
-    X = np.array([df["AllText"].to_numpy()]).T
+
+    # Build X with two columns: text and row_id to keep perfect alignment
+    X = np.column_stack((df["AllText"].to_numpy(), df["_row_id"].to_numpy()))
 
     np.random.seed(5)
     X_train, y_train, X_test, y_test = iterative_train_test_split(
         X, y, test_size=test_size
     )
 
+    # Extract text and indices from the split X
+    text_train = X_train[:, 0]
+    text_test = X_test[:, 0]
+    idx_train = X_train[:, 1].astype(np.int64)
+    idx_test = X_test[:, 1].astype(np.int64)
+
+    # Compose label+text DataFrames (text must remain the last column)
     train = pd.DataFrame(y_train, columns=mlb.classes_)
     test = pd.DataFrame(y_test, columns=mlb.classes_)
+    train["text"] = text_train
+    test["text"] = text_test
 
-    train["text"] = X_train.ravel()
-    test["text"] = X_test.ravel()
+    # Prepare sidecar metadata DataFrames aligned row-by-row to train/test
+    metadata_cols = ["FundingOrganisation"]
 
-    return train, test
+    df_meta_indexed = df.set_index("_row_id")
+    train_meta = df_meta_indexed.loc[idx_train, metadata_cols].reset_index(drop=True)
+    test_meta = df_meta_indexed.loc[idx_test, metadata_cols].reset_index(drop=True)
+
+    return train, test, train_meta, test_meta
 
 
-def save_train_test_data(train, test, output_dir):
+def save_train_test_data(train, test, output_dir, train_meta, test_meta):
     """Save training and test data to disk.
 
     Args:
         train (pd.DataFrame): Training data.
         test (pd.DataFrame): Test data.
         output_dir (str): Output directory.
+        train_meta (pd.DataFrame): Training metadata.
+        test_meta (pd.DataFrame): Test metadata.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     train.to_parquet(output_dir + "/train.parquet")
     test.to_parquet(output_dir + "/test.parquet")
+    train_meta.to_parquet(output_dir + "/train_meta.parquet")
+    test_meta.to_parquet(output_dir + "/test_meta.parquet")
 
 
 @click.command()
@@ -83,15 +107,15 @@ def processing_pipeline(config, clean_data, output_dir):
     for category in ["RA", "RA_top", "HC"]:
         data = pd.read_parquet(clean_data)
 
-        if config["preprocess_settings"]["cased"]:
+        if not config["preprocess_settings"]["cased"]:
             data["AllText"] = data["AllText"].str.lower()
 
-        train, test = split_data_frame(
+        train, test, train_meta, test_meta = split_data_frame(
             data, category, config["preprocess_settings"]["test_train_split"]
         )
 
         output_sub_dir = f"{output_dir}/{category.lower()}"
-        save_train_test_data(train, test, output_sub_dir)
+        save_train_test_data(train, test, output_sub_dir, train_meta, test_meta)
 
 
 if __name__ == "__main__":

@@ -58,6 +58,7 @@ wtdbc = { git = "https://github.com/wellcometrust/wtdbc.git" }
 
 [dependency-groups]
 dev = [
+    "black>=26.3.1",
     "dotenv>=0.9.9",
     "ipykernel>=6.29.5",
     "wtdbc",

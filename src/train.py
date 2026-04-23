@@ -1,12 +1,10 @@
 import argparse
-import json
 import os
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.metrics import f1_score, precision_score, recall_score
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -19,6 +17,7 @@ from transformers import (
 
 import wandb
 from utils import load_yaml_config
+from metrics import prepare_compute_metrics, load_label_names
 
 
 def init_wandb(project_name, config_settings, report_to):
@@ -57,22 +56,6 @@ def init_device():
         return "cuda"
     else:
         return "cpu"
-
-def load_label_names(label_names_path):
-    """Load label names from a JSONL file.
-
-    Args:
-        label_names_path (str): Path to the label names file.
-
-    Returns:
-        dict: Dictionary mapping label IDs to label names.
-    """
-
-    with open(label_names_path) as f:
-        label_names = {k: v for line in f for k, v in json.loads(line).items()}
-        label_names = {idx: name for idx, name in enumerate(label_names.values())}
-
-    return label_names
 
 class WeightedTrainer(Trainer):
     def __init__(self, *args, class_weights: torch.FloatTensor | None = None, **kwargs):
@@ -121,7 +104,7 @@ class HRCSDataset(torch.utils.data.Dataset):
         return len(self.labels)
 
 
-def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_path):
+def train(train_data, test_data, model_path, config, class_counts, class_weighting, label_names_dir, meta_path):
     """Finetune a model from the config for the UKHRA data.
 
     Args:
@@ -131,7 +114,8 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         config (dict): Configuration dictionary.
         class_counts (list): List of class counts for training data.
         class_weighting (bool): Whether to use class weighting.
-        label_names_path (str): Path to the label names file.
+        label_names_dir (str): Directory containing label names files.
+        meta_path (str): Directory containing train/test metadata files.
 
     Returns:
         dict: Evaluation metrics.
@@ -160,35 +144,16 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     log_to_wandb({"num_labels": num_labels}, config["training_settings"]["report_to"])
 
     # fetch label names 
-    label_names = load_label_names(label_names_path)
+    label_names = load_label_names(label_names_dir, "long")
 
     # initialize model
+    model = get_model(
+        config["training_settings"]["model"],
+        num_labels,
+        label_names
+    )
     if "modernbert" in config["training_settings"]["model"].lower():
-        model = ModernBertForSequenceClassification.from_pretrained(
-            config["training_settings"]["model"],
-            num_labels=num_labels,
-            problem_type="multi_label_classification",
-            id2label=label_names,
-            reference_compile=False,
-        )
-
-        print("model initialized using ModernBertForSequenceClassification")
-    elif "distilbert" in config["training_settings"]["model"].lower():
-        model = DistilBertForSequenceClassification.from_pretrained(
-            config["training_settings"]["model"],
-            num_labels=num_labels,
-            id2label=label_names,
-            problem_type="multi_label_classification",
-        )
-        print("model initialized using DistilBertForSequenceClassification")
-    else:
-        model = AutoModelForSequenceClassification.from_pretrained(
-            config["training_settings"]["model"],
-            num_labels=num_labels,
-            id2label=label_names,
-            problem_type="multi_label_classification",
-        )
-        print("model initialized using AutoModelForSequenceClassification")
+        model.config.reference_compile=False
 
     # initialize training arguments
     report_to_value = config["training_settings"]["report_to"]
@@ -212,7 +177,8 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
         logging_strategy=config["training_settings"]["logging_strategy"],
     )
 
-    compute_metrics = prepare_compute_metrics(config)
+    # Provide meta_path (directory holding train_meta/test_meta) to metrics
+    compute_metrics = prepare_compute_metrics(config, meta_path)
     # initialize trainer depending on class weighting option
     if class_weighting:
         total_count = sum(class_counts)
@@ -249,106 +215,32 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     return metrics
 
 
-def prepare_compute_metrics(config):
-    """Wrapper for compute_metrics so config can be accessed
-
-    Args: config (dict): Configuration dictionary from yaml file.
-
-    Returns:
-        function: compute_metrics function
+def get_model(model_name, num_labels, label_names):
     """
-
-    def compute_metrics(eval_pred):
-        """Compute evaluation metrics to be used in the Trainer.
-
-        Args: eval_pred (tuple): Tuple containing logits and labels.
-
-        Returns:
-            dict: Evaluation metrics (f1, f1_macro, f1_micro, precision,
-            recall)
-        """
-        logits, labels = eval_pred
-        # apply sigmoid to logits
-        logits = torch.sigmoid(torch.tensor(logits)).cpu().detach().numpy()
-
-        num_tags_predicted = []
-        if config["training_settings"]["output_weighting"]:
-            thresholds = [1] * labels.shape[1]
-            thresholds[0:4] = [0.2, 0.5, 0.8, 0.95]
-
-            # Prepare an array to hold your predictions
-            predictions = np.zeros_like(logits)
-
-            # Loop through each sample's logits
-            for i, logit in enumerate(logits):
-                # Get the indices of the logits sorted by value in descending order
-                sorted_indices = np.argsort(logit)[::-1]
-
-                # Assign 1 to the top logits that exceed their respective thresholds
-                for rank, idx in enumerate(sorted_indices):
-                    if logit[idx] > thresholds[rank]:
-                        predictions[i, idx] = 1
-                num_tags_predicted.append(np.sum(predictions[i]))
-        else:
-            predictions = np.where(logits > 0.5, 1, 0)
-            for prediction in predictions:
-                num_tags_predicted.append(np.sum(prediction))
-
-            print(
-                "num_tags_predicted: ",
-                pd.Series(num_tags_predicted).value_counts().sort_index(),
-            )
-            log_data = pd.Series(num_tags_predicted).value_counts()
-            log_to_wandb({"num_tags_predicted": log_data.sort_index().to_json()}, config["training_settings"]["report_to"])
-
-        # compute actual metrics
-        f1_macro = f1_score(labels, predictions, average="macro")
-        f1_micro = f1_score(labels, predictions, average="micro")
-        f1 = f1_score(labels, predictions, average=None)
-        precision = precision_score(labels, predictions, average=None)
-        recall = recall_score(labels, predictions, average=None)
-        metrics = {
-            "f1": f1,
-            "f1_macro": f1_macro,
-            "f1_micro": f1_micro,
-            "precision": precision,
-            "recall": recall,
-        }
-        return metrics
-
-    return compute_metrics
-
-
-def plot_metrics(metrics, class_labels, train_counts, test_counts, config):
-    """Plot evaluation metrics and value counts in wandb
+    Loads a pre-trained model for sequence classification.
 
     Args:
-        metrics (dict): Evaluation metrics.
-        class_labels (list): List of class labels.
-        train_counts (list): List of class counts for train dataset.
-        test_counts (list): List of class counts for test dataset.
-        config (dict): Configuration dictionary.
+        model_name (str): The name of the model to load.
+        num_labels (int): The number of labels for classification.
+        label_names (dict): A dictionary mapping label IDs to label names.
 
+    Returns:
+        transformers.PreTrainedModel: The loaded model.
     """
+    model_class = AutoModelForSequenceClassification
+    if "modernbert" in model_name.lower():
+        model_class = ModernBertForSequenceClassification
+    elif "distilbert" in model_name.lower():
+        model_class = DistilBertForSequenceClassification
 
-    f1 = metrics["eval_f1"]
-    precision = metrics["eval_precision"]
-    recall = metrics["eval_recall"]
-    data = zip(
-        class_labels, precision, recall, f1, train_counts, test_counts, strict=False
+    model = model_class.from_pretrained(
+        model_name,
+        num_labels=num_labels,
+        problem_type="multi_label_classification",
+        id2label=label_names,
     )
-
-    # print data as a dataframe to console
-    df = pd.DataFrame(
-        list(data),
-        columns=["label", "precision", "recall", "f1", "train_count", "test_count"],
-    )
-    print(df)
-
-    # Only proceed if wandb reporting is enabled
-    if config["training_settings"]["report_to"] == "wandb":
-        table = wandb.Table(dataframe=df)
-        wandb.log({"metrics and value_count table": table})
+    print(f"Model initialized using {model_class.__name__}")
+    return model
 
 
 def run_training(args):
@@ -362,7 +254,7 @@ def run_training(args):
     train_data = pd.read_parquet(args.train_path)
     test_data = pd.read_parquet(args.test_path)
 
-    class_labels_dict = load_label_names(args.label_names_path)
+    class_labels_dict = load_label_names(args.label_names_dir, "long")
     class_labels = [label for label in class_labels_dict.values()]
     print(f"class labels: {class_labels}")
     train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
@@ -377,6 +269,7 @@ def run_training(args):
     log_to_wandb({"model_path": model_path}, config["training_settings"]["report_to"])
 
     class_weighting = config["training_settings"]["class_weighting"]
+    meta_path = os.path.dirname(args.test_path)
     metrics = train(
         train_data,
         test_data,
@@ -384,20 +277,9 @@ def run_training(args):
         config=config,
         class_counts=train_counts,
         class_weighting=class_weighting,
-        label_names_path=args.label_names_path,
+        label_names_dir=args.label_names_dir,
+        meta_path=meta_path,
     )
-
-    # save artifacts to wandb
-    if config["training_settings"]["report_to"] == "wandb":
-        artifact = wandb.Artifact(
-            name=f"{model_name}_{timestamp}",
-            type="model",
-            description=f"Finetuned HRCS tagger model on {timestamp}",
-        )
-        artifact.add_dir(model_path)
-        wandb.log_artifact(artifact)
-    
-    plot_metrics(metrics, class_labels, train_counts, test_counts, config)
 
 
 if __name__ == "__main__":
@@ -408,7 +290,7 @@ if __name__ == "__main__":
     parser.add_argument("--train-path", type=str, default=f"{dp}/train.parquet")
     parser.add_argument("--test-path", type=str, default=f"{dp}/test.parquet")
     parser.add_argument(
-        "--label-names-path", type=str, default="data/label_names/ukhra_ra.jsonl"
+        "--label-names-dir", type=str, default="data/label_names/"
     )
     parser.add_argument("--model-dir", type=str, default="data/model")
     args = parser.parse_args()
