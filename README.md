@@ -18,8 +18,8 @@ Developed by the Machine Learning team, within Data & Digital at [the Wellcome T
 
 ## Data Acknowledgement
 Acknowledgment, for training and evaluation of our model we used the following datasets:
-* UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online: https://hrcsonline.net/. E.g. the 2022 report data can be found here: https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/.
-* NIHR tagged awards dataset: https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon
+* [UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online](https://hrcsonline.net/). E.g. the 2022 report data can be found [here](https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/).
+* [NIHR tagged awards dataset](https://nihr.opendatasoft.com/api/explore/v2.1/catalog/datasets/nihr-summary-view/exports/parquet?lang=en&timezone=Europe%2FLondon)
 
 ## Project Structure
 
