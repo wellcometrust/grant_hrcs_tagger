@@ -8,7 +8,6 @@ dependencies = [
     "akin==1.0.1",
     "click>=8.1.8",
     "datasketch>=1.6.5",
-    "flash-attn==2.7.4.post1; sys_platform == 'linux'",
     "jupyterlab>=4.3.5",
     "mmh3>=5.1.0",
     "numpy==1.26.4",
@@ -23,9 +22,11 @@ dependencies = [
     "sagemaker==3.4.0",
     "scikit-learn>=1.6.1",
     "scikit-multilearn>=0.2.0",
-    "torch>=2.6.0",
+    "setuptools>=81.0.0",
+    "torch==2.6.0",
     "transformers[torch]>=4.49.0",
     "wandb>=0.19.7",
+    "flash-attn==2.7.4.post1; sys_platform == 'linux'",
 ]
 
 [tool.ruff]
@@ -50,16 +51,27 @@ select = [
 ]
 ignore = ["D100", "D104", "E501"]
 
-[tool.ruff.lint.pydocstyle]
-convention = "google"
+[tool.uv.extra-build-dependencies]
+flash-attn = [
+    { requirement = "torch", match-runtime = true },
+    "setuptools>=81",
+    "wheel",
+]
 
 [tool.uv.sources]
-wtdbc = { git = "https://github.com/wellcometrust/wtdbc.git" }
+torch = [{ index = "pytorch-cu124", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [dependency-groups]
 dev = [
     "black>=26.3.1",
     "dotenv>=0.9.9",
     "ipykernel>=6.29.5",
-    "wtdbc",
 ]
