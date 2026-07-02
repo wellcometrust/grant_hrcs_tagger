@@ -19,7 +19,7 @@ dependencies = [
     "python-dotenv>=1.1.0",
     "rich>=13.9.4",
     "ruff>=0.11.12",
-    "sagemaker==3.4.0",
+    "sagemaker==3.8.0",
     "scikit-learn>=1.6.1",
     "scikit-multilearn>=0.2.0",
     "setuptools>=81.0.0",
