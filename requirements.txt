@@ -42,7 +42,7 @@ pandas==2.2.3
 platformdirs==4.3.6
 protobuf==5.29.6
 psutil==7.0.0
-pyarrow==19.0.1
+pyarrow==23.0.1
 pydantic==2.10.6
 pydantic-core==2.27.2
 pygments==2.20.0
