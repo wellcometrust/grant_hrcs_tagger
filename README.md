@@ -9,13 +9,6 @@ Developed by the Machine Learning team, within Data & Digital at [the Wellcome T
 
 ---
 
-## Quick Start
-
-- **Just want to tag grants?** → See [Inference](#inference)
-- **Want to train your own model?** → See [Training](#training)
-
----
-
 ## Data Acknowledgement
 Acknowledgment, for training and evaluation of our model we used the following datasets:
 * [UK Health Research Analysis 2014, 2018 and 2022 reports from HRCS online](https://hrcsonline.net/). E.g. the 2022 report data can be found [here](https://hrcsonline.net/reports/analysis-reports/uk-health-research-analysis-2022/).
