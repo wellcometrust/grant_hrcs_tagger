@@ -168,24 +168,6 @@ Trained models are saved to `data/model/` and can be used for inference on new g
 
 ---
 
-## Deployment
-
-Models can be deployed to AWS SageMaker. Configuration is managed in `config/deploy_config.yaml`:
-
-```yaml
-model_args:
-  transformers_version: "4.49.0"
-  pytorch_version: "2.6.0"
-  py_version: "py312"
-
-endpoint_args:
-  instance_type: "ml.m5.xlarge"
-```
-
-See `src/deploy.py` for deployment utilities and `notebooks/deploy.ipynb` for an interactive deployment workflow.
-
----
-
 ## Testing
 
 Run the test suite:
