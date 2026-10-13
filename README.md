@@ -43,25 +43,6 @@ Acknowledgment, for training and evaluation of our model we used the following d
 
 Use the trained model to tag grants with HRCS codes. Choose the approach that fits your use case:
 
-### Using a Hugging Face Hosted Model
-
-The easiest way to get started is using our pre-trained model hosted on Hugging Face:
-
-```python
-from transformers import pipeline
-
-# Load the model from Hugging Face Hub
-classifier = pipeline(
-    "text-classification",
-    model="wellcometrust/grant-hrcs-tagger",  # TODO: Update with actual model path
-    top_k=None
-)
-
-# Predict HRCS tags
-result = classifier("Your grant title and abstract text here")
-print(result)
-```
-
 > **Note:** The Hugging Face model URL will be updated once the model is published.
 
 ### Using a Local Model
