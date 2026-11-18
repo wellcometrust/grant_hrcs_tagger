@@ -3,31 +3,32 @@ name = "grant-hrcs-tagger"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.14.*"
 dependencies = [
-    "akin==1.0.1",
-    "click>=8.1.8",
-    "datasketch>=1.6.5",
-    "jupyterlab>=4.6.2",
-    "mmh3>=5.1.0",
-    "numpy==1.26.4",
-    "openpyxl>=3.1.5",
-    "pandas>=2.2.3",
-    "pillow>=11.3.0",
-    "protobuf==5.29.6",
-    "pyarrow>=23.0.1",
-    "python-dotenv>=1.1.0",
-    "rich>=13.9.4",
-    "ruff>=0.11.12",
-    "sagemaker==3.8.0",
-    "scikit-learn>=1.6.1",
-    "scikit-multilearn>=0.2.0",
-    "setuptools>=83.0.0",
-    "torch==2.6.0",
-    "transformers[torch]>=4.49.0",
-    "wandb>=0.19.7",
+    "akin>=2.1.0",
+    "click>=8.5.1",
     "flash-attn==2.7.4.post1; sys_platform == 'linux'",
+    "jupyterlab>=4.6.6",
+    "numpy>=2.5.5",
+    "openpyxl>=3.1.5",
+    "pandas>=3.1.1",
+    "pillow>=13.0.0",
+    "protobuf>=7.36.2",
+    "pyarrow>=26.0.1",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+    "ruff>=0.17.5",
+    "sagemaker>=2.75.1",
+    "scikit-learn>=1.9.1",
+    "scikit-multilearn>=0.2.0",
+    "setuptools>=84.2.1",
+    "torch>=2.15.0",
+    "transformers[torch]>=5.23.0",
+    "wandb>=0.31.0",
 ]
+
+[project.scripts]
+grant-hrcs-tagger = "grant_hrcs_tagger:main"
 
 [tool.uv.extra-build-dependencies]
 flash-attn = [
@@ -60,9 +61,6 @@ select = [
     "D",
 ]
 ignore = ["D100", "D104", "E501"]
-
-[tool.uv.sources]
-torch = [{ index = "pytorch-cu124", marker = "sys_platform == 'linux'" }]
 
 [[tool.uv.index]]
 name = "pytorch-cu124"
