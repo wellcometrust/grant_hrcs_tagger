@@ -20,7 +20,7 @@ build_dataset:
 
 .PHONY: train_test_split
 train_test_split:
-	uv run src/train_test_split.py \
+	uv run src/data_processing/train_test_split.py \
 		"config/train_config.yaml" \
 		"data/clean/clean.parquet" \
 		"data/preprocessed"
