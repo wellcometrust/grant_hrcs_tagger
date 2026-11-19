@@ -1,61 +1,21 @@
 import argparse
 import os
 
+import click
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 from transformers import (
-    AutoModelForSequenceClassification,
     AutoTokenizer,
     DataCollatorWithPadding,
-    DistilBertForSequenceClassification,
-    ModernBertForSequenceClassification,
     Trainer,
     TrainingArguments,
 )
 
-import wandb
 from utils import load_yaml_config
 from metrics import prepare_compute_metrics, load_label_names
 
-
-def init_wandb(project_name, config_settings, report_to):
-    """Initialize wandb if reporting is enabled.
-    
-    Args:
-        project_name (str): Name of the wandb project
-        config_settings (dict): Configuration settings to log
-        report_to (str): Reporting destination ('wandb' or None)
-    """
-    if report_to == "wandb":
-        wandb.init(project=project_name, config=config_settings)
-
-
-def log_to_wandb(data, report_to):
-    """Log data to wandb if reporting is enabled.
-    
-    Args:
-        data (dict): Data to log
-        report_to (str): Reporting destination ('wandb' or None)
-    """
-    if report_to == "wandb":
-        wandb.log(data)
-
-
-def init_device():
-    """Initialize device to use for training.
-
-    Returns:
-        str: device to use for training
-    """
-    torch.cuda.empty_cache()
-    if torch.backends.mps.is_built():
-        return "mps"
-    elif torch.cuda.is_available():
-        return "cuda"
-    else:
-        return "cpu"
 
 class WeightedTrainer(Trainer):
     def __init__(self, *args, class_weights: torch.FloatTensor | None = None, **kwargs):
@@ -143,7 +103,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     num_labels = len(test_dataset[0]["labels"])
     log_to_wandb({"num_labels": num_labels}, config["training_settings"]["report_to"])
 
-    # fetch label names 
+    # fetch label names
     label_names = load_label_names(label_names_dir, "long")
 
     # initialize model
@@ -159,7 +119,7 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     report_to_value = config["training_settings"]["report_to"]
     if report_to_value is None:
         report_to_value = "none"  # Transformers expects "none" instead of None
-    
+
     training_args = TrainingArguments(
         learning_rate=config["training_settings"]["learning_rate"],
         num_train_epochs=config["training_settings"]["num_train_epochs"],
@@ -215,46 +175,24 @@ def train(train_data, test_data, model_path, config, class_counts, class_weighti
     return metrics
 
 
-def get_model(model_name, num_labels, label_names):
-    """
-    Loads a pre-trained model for sequence classification.
-
-    Args:
-        model_name (str): The name of the model to load.
-        num_labels (int): The number of labels for classification.
-        label_names (dict): A dictionary mapping label IDs to label names.
-
-    Returns:
-        transformers.PreTrainedModel: The loaded model.
-    """
-    model_class = AutoModelForSequenceClassification
-    if "modernbert" in model_name.lower():
-        model_class = ModernBertForSequenceClassification
-    elif "distilbert" in model_name.lower():
-        model_class = DistilBertForSequenceClassification
-
-    model = model_class.from_pretrained(
-        model_name,
-        num_labels=num_labels,
-        problem_type="multi_label_classification",
-        id2label=label_names,
-    )
-    print(f"Model initialized using {model_class.__name__}")
-    return model
-
-
-def run_training(args):
+@click.command()
+@click.argument('config-path')
+@click.argument('train-path')
+@click.argument('test-path')
+@click.argument('label-names-dir')
+@click.argument('model-dir')
+def run_training(config_path, train_path, test_path, label_names_dir, model_dir):
+    config = load_yaml_config(config_path)
     timestamp = pd.Timestamp.now().strftime("%Y%m%d%H%M%S")
+
     model_name = config["training_settings"]["model"]
-    model_path = f"{args.model_dir}/{model_name}_{timestamp}"
-    # check if model path exists
-    if not os.path.exists(model_path):
-        os.makedirs(model_path)
+    model_path = f"{model_dir}/{model_name}_{timestamp}"
+    os.makedirs(model_path)
 
-    train_data = pd.read_parquet(args.train_path)
-    test_data = pd.read_parquet(args.test_path)
+    train_data = pd.read_parquet(train_path)
+    test_data = pd.read_parquet(test_path)
 
-    class_labels_dict = load_label_names(args.label_names_dir, "long")
+    class_labels_dict = load_label_names(label_names_dir, "long")
     class_labels = [label for label in class_labels_dict.values()]
     print(f"class labels: {class_labels}")
     train_counts = np.sum(train_data[train_data.columns[:-1]].to_numpy(), axis=0)
@@ -269,7 +207,7 @@ def run_training(args):
     log_to_wandb({"model_path": model_path}, config["training_settings"]["report_to"])
 
     class_weighting = config["training_settings"]["class_weighting"]
-    meta_path = os.path.dirname(args.test_path)
+    meta_path = os.path.dirname(test_path)
     metrics = train(
         train_data,
         test_data,
@@ -277,23 +215,10 @@ def run_training(args):
         config=config,
         class_counts=train_counts,
         class_weighting=class_weighting,
-        label_names_dir=args.label_names_dir,
+        label_names_dir=label_names_dir,
         meta_path=meta_path,
     )
 
 
 if __name__ == "__main__":
-    # parse arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config-path", type=str, default="config/train_config.yaml")
-    dp = "data/preprocessed"
-    parser.add_argument("--train-path", type=str, default=f"{dp}/train.parquet")
-    parser.add_argument("--test-path", type=str, default=f"{dp}/test.parquet")
-    parser.add_argument(
-        "--label-names-dir", type=str, default="data/label_names/"
-    )
-    parser.add_argument("--model-dir", type=str, default="data/model")
-    args = parser.parse_args()
-
-    config = load_yaml_config(args.config_path)
-    run_training(args)
+    run_training()

@@ -74,12 +74,12 @@ def clean_text_column(df, col, text_type):
 
     Returns:
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
-    
+
     """
     ref = text_abstract_refs[text_type]
     df = df.loc[~df[col].str.strip().str.lower().isin(ref["drop"])]
     df[col] = df[col].fillna("")
-    
+
     df[col] = np.where(
         df[col].str.strip().str.lower().isin(ref["nulls"]), "", df[col]
     )
@@ -106,7 +106,7 @@ def process_texts(df, min_char_len=110):
 
     Returns:
         pd.DataFrame: Returns dataframe with cleaned and combined AllText str column.
-    
+
     """
     df = clean_text_column(df.copy(), "AwardTitle", "title")
     df = clean_text_column(df.copy(), "AwardAbstract", "abstract")
